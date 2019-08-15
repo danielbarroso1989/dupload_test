@@ -95,4 +95,3 @@ function create_validate_id() {
 
     });
 }
-
