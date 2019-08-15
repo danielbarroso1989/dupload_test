@@ -1,7 +1,5 @@
 
-//url request
-//const url = 'https://postman-echo.com/post';
-const url = "http://localhost:8000/endpoint/"
+const url = "http://localhost:8080/poc-forklift/validate"
 document.addEventListener('DOMContentLoaded', init);
 
 function init(){
@@ -11,36 +9,33 @@ function init(){
 function upload(ev){
     ev.preventDefault();    //stop the form submitting
 
+    let validate = validate_csv();
+
+    console.log("process " + validate)
+
+}
+
+async function validate_csv(){
+
     //create any headers we want
     let h = new Headers();
-    h.append('Accept', 'application/json'); //what we expect back
-    //bundle the files and data we want to send to the server
-    let fd = new FormData();
-    fd.append('user-id', document.getElementById('user_id').value);
- 
-    let myFile = document.getElementById('file_test').files[0];
-    
 
-    fd.append('csv_file', myFile, "poc.csv");
+    h.append('Accept', 'application/json'); //what we expect back
+
+    let fd = new FormData();
+
+    let myFile = document.getElementById('file_test').files[0];
+    fd.append('file', myFile);
     let req = new Request(url, {
         method: 'POST',
         headers: h,
-        mode: 'no-cors',
         body: fd
     });
 
+    let response = await fetch(req);
 
-    fetch(req)
-        .then( (response)=>{
-            document.getElementById('output').textContent = "Response received from server";
-        })
-        .catch( (err) =>{
-            console.log('ERROR:', err.message);
-        });
-}
+    let data = await response.json();
 
-function validate_file(file){
-    //validate format
-    //validate size
-    //validate null
+    return  data['processId'];
+
 }
