@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<h1>Using Fetch to Upload Files</h1>
+<h2>Testing with Postman</h2>
+<p>https://postman-echo.com/post</p>
+<form action="#">
+    <div>
+        <input type="hidden" id="user_id" value="75" />
+        <input type="file" id="file_test"  multiple />
+    </div>
+    <div>
+        <button id="btnSubmit">Upload file</button>
+    </div>
+</form>
+<div id="output">
+    <!-- output goes here -->
+    
+</div>
+
+
+   
+{% endblock %}
