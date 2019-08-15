@@ -1,41 +1,98 @@
+const url = "http://c7bb828c.ngrok.io/poc-forklift/validate";
 
-const url = "http://localhost:8080/poc-forklift/validate"
+const url2 = "http://localhost:8080/poc-forklift/process/";
+
 document.addEventListener('DOMContentLoaded', init);
 
-function init(){
+function init() {
     document.getElementById('btnSubmit').addEventListener('click', upload);
 }
 
-function upload(ev){
-    ev.preventDefault();    //stop the form submitting
+async function upload(ev) {
 
-    let validate = validate_csv();
+    ev.preventDefault();
 
-    console.log("process " + validate)
+    var prueba = await create_validate_id();
+
+    console.log("prueba " + prueba);
+
+    var process_status = await query_process(prueba);
+
+    do {
+        setTimeout(async function () {
+            process_status = await query_process(prueba);
+            console.log("do", process_status['finished']);
+        }, 5);
+    } while(process_status['finished'] == 'false');
+
+
 
 }
 
-async function validate_csv(){
+function query_process(process_id) {
 
-    //create any headers we want
-    let h = new Headers();
+    return new Promise(resolve => {
 
-    h.append('Accept', 'application/json'); //what we expect back
+        let h = new Headers();
 
-    let fd = new FormData();
+        h.append('Accept', 'application/json');
 
-    let myFile = document.getElementById('file_test').files[0];
-    fd.append('file', myFile);
-    let req = new Request(url, {
-        method: 'POST',
-        headers: h,
-        body: fd
+        let process_url = `${url2}${process_id}`;
+
+        let req = new Request(process_url, {
+            method: 'GET',
+            headers: h,
+        });
+
+        fetch(req)
+            .then((response) => {
+
+                resolve(response.json());
+
+            })
+            .catch((err) => {
+                console.log('ERROR:', err.message);
+            });
+
     });
 
-    let response = await fetch(req);
-
-    let data = await response.json();
-
-    return  data['processId'];
 
 }
+
+function create_validate_id() {
+
+    return new Promise(resolve => {
+
+        let h = new Headers();
+
+        h.append('Accept', 'application/json');
+
+        let fd = new FormData();
+
+        let myFile = document.getElementById('file_test').files[0];
+
+        fd.append('file', myFile);
+
+        let req = new Request(url, {
+            method: 'POST',
+            headers: h,
+            body: fd
+        });
+
+        fetch(req)
+            .then((response) => {
+                response.json().then(function (data) {
+
+                    document.getElementById('output').textContent = `response id ${data['processId']}`;
+
+                    resolve(data['processId']);
+                });
+
+            })
+            .catch((err) => {
+                console.log('ERROR:', err.message);
+            });
+
+    });
+}
+
