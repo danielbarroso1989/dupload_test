@@ -7,35 +7,52 @@ const url3 = 'http://localhost:8080/poc-forklift/validate/results/';
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
+
     document.getElementById('btnSubmit').addEventListener('click', upload);
+
 }
 
 async function upload(ev) {
 
     ev.preventDefault();
 
-    var prueba = await create_validate_id();
+    var validate_data = await create_validate_id();
 
-    var process_status = await query_process(prueba);
+    var process_id = validate_data['processId'];
+
+    var csv_file = validate_data['csv_file'];
+
+    var process_status = await query_process(process_id);
 
     while(process_status['finished'] === false){
         await sleep(500);
-        process_status = await query_process(prueba);
+        process_status = await query_process(process_id);
     }
     if(process_status['interrupted'] === false){
-        console.log("OK");
+
+        let results = await get_validate_results(process_id);
+
+        if(results.length > 0){
+
+            console.log("with errors", results);
+
+        } else {
+
+            console.log("without errors", results);
+
+        }
+
     }else {
-        console.log("INTERRUPTED")
-        return
+        console.log("INTERRUPTED");
+
     }
-    let results = await get_validate_results(prueba)
-    console.log(results)
+
 
 }
 
 const sleep = (milliseconds) => {
   return new Promise(resolve => setTimeout(resolve, milliseconds))
-}
+};
 
 function query_process(process_id) {
 
@@ -93,7 +110,9 @@ function create_validate_id() {
 
                     document.getElementById('output').textContent = `response id ${data['processId']}`;
 
-                    resolve(data['processId']);
+                    data['csv_file'] = myFile;
+
+                    resolve(data);
                 });
 
             })
