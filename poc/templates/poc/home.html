@@ -3,22 +3,14 @@
 
 {% block content %}
 
-    <h1>Using Fetch to Upload Files</h1>
-    <form action="#">
-        <div>
-            <input type="hidden" id="user_id" value="75"/>
-            <input type="file" id="file_test" multiple/>
-        </div>
-        <div>
-            <button id="btnSubmit">Upload file</button>
-        </div>
-    </form>
-    <div id="output">
-        <!-- output goes here -->
-
-    </div>
-
-    <form action="#">
+<h1>Using Fetch to Upload Files</h1>
+<h2>Testing with Postman</h2>
+<p>https://postman-echo.com/post</p>
+<form id="myForm" action="#">
+    <div>
+        <input type="text" id="api_user" name="api_user" placeholder="API USER" required>
+        <input type="text" id="api_token" name="api_token" placeholder="API KEY" required>
+        <input required type="file" id="file_test"  multiple />
         <div>
             <select>
               <option value="sbx">Sandbox</option>
@@ -26,11 +18,14 @@
               <option value="qar">QAR API</option>
               <option value="qa58">QA58</option>
             </select>
-            <input type="text" id="api_user" name="api_user" placeholder="API USER">
-            <input type="text" id="api_token" name="api_token" placeholder="API KEY">
-            <button id="submit_credentials">Submit</button>
         </div>
-    </form>
+        <input type="submit" value="Submit">
+    </div>
+</form>
+<div id="output">
+    <!-- output goes here -->
+
+</div>
 
 
 
