@@ -5,11 +5,19 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
+ENVIRONMENTS = (
+    ('sbx', 'Sandbox'),
+    ('stg', 'Staging'),
+    ('qar', 'QAR API'),
+    ('qa58', 'QA58'),
+
+)
+
+
 def index(request):
-    context = {
-        'posts': "posts"
-    }
-    return render(request, 'poc/home.html', context)
+
+    return render(request, 'poc/home.html', {'ENVIRONMENTS': ENVIRONMENTS,
+                                             })
 
 @csrf_exempt
 def endpoint(request):
