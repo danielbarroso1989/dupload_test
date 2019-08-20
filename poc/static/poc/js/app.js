@@ -118,11 +118,11 @@ class Poc{
 
             if(results.length > 0){
 
-                console.log("with errors", results);
+                await this.create_csv_with_errors(results);
 
             } else {
 
-                console.log("without errors", results);
+                 console.log("without errors", results);
 
             }
 
@@ -130,6 +130,34 @@ class Poc{
             console.log("INTERRUPTED");
 
         }
+    }
+
+    async create_csv_with_errors(results){
+
+        const items = typeof results !== 'object' ? JSON.parse(results) : results;
+
+        const replacer = (key, value) => value === null ? '' : value; // specify how you want to handle null values here
+
+        const header = Object.keys(items[0]);
+
+        let csv = items.map(row => header.map(fieldName => JSON.stringify(row[fieldName], replacer)).join(','));
+
+        csv.unshift(header.join(','));
+
+        csv = csv.join('\r\n');
+
+        let link = document.createElement('a');
+
+        link.id = 'download-csv';
+
+        link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv));
+
+        link.setAttribute('download', 'yourfiletextgoeshere.csv');
+
+        document.body.appendChild(link);
+
+        document.querySelector('#download-csv').click();
+
     }
 
     async get_validate_results(process_id) {
