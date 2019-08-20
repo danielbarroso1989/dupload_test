@@ -1,32 +1,29 @@
 {% extends 'base.html' %}
 
-
 {% block content %}
 
-<h1>Using Fetch to Upload Files</h1>
-<h2>Testing with Postman</h2>
-<p>https://postman-echo.com/post</p>
-<form id="myForm" action="#">
-    <div>
-        <input type="text" id="api_user" name="api_user" placeholder="API USER" required>
-        <input type="text" id="api_token" name="api_token" placeholder="API KEY" required>
-        <input required type="file" id="file_test"  multiple />
-        <div>
-            <select>
-              <option value="sbx">Sandbox</option>
-              <option value="stg">Staging</option>
-              <option value="qar">QAR API</option>
-              <option value="qa58">QA58</option>
-            </select>
-        </div>
-        <input type="submit" value="Submit">
-    </div>
-</form>
-<div id="output">
-    <!-- output goes here -->
+    <nav aria-label="breadcrumb" class="mt-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active" id="menu-account-setup">Account Setup</li>
+            <li class="breadcrumb-item" id="menu-file-upload">File Upload</li>
+            <li class="breadcrumb-item" id="menu-column-mapping" aria-current="page">Column Mapping</li>
+        </ol>
+    </nav>
 
-</div>
 
+    <section id="section-account-setup" class="">
+        {% include "poc/elements/account_setup.html" %}
+    </section>
+
+
+    <section id="section-file-upload" class="d-none">
+        {% include "poc/elements/file-upload.html" %}
+    </section>
+
+
+    <section id="section-column-mapping" class="d-none">
+        {% include "poc/elements/column-mapping.html" %}
+    </section>
 
 
 {% endblock %}
