@@ -44,7 +44,7 @@ class Poc{
                 this._api_key = api_key;
                 this._api_user = api_user;
                 this._environment = environment;
-                this.continue_section("account-setup", "file-upload")
+                this.continue_section("account-setup", "file-upload");
 
 
 
@@ -62,17 +62,25 @@ class Poc{
 
     }
 
-    async submit_upload_file(){
-        let myFile = document.getElementById('file_csv').files[0];
+    async submit_upload_file(id){
+
+        let myFile = document.getElementById(id).files[0];
 
         if(this.validate_csv(myFile)){
 
             await this.ValidateFormatDoc(myFile);
 
-            console.log(this.errors_mapping);
+            if (this.errors_mapping.length > 0){
 
-            this.add_html_element('count-errors-mapping',this.errors_mapping.length);
+                let errors = 'errors';
 
+                if (this.errors_mapping.length === 1)
+                    errors = 'error';
+
+                this.add_html_element('count-errors-mapping',
+                    `${this.errors_mapping.length} ${errors} found!`);
+
+            }
 
             this.continue_section("file-upload", "column-mapping");
 
@@ -92,8 +100,6 @@ class Poc{
         if(this.validate_csv(myFile)){
 
             await this.ValidateFormatDoc(myFile);
-
-            console.log(this.errors_mapping);
 
             this.add_html_element('count-errors-mapping',this.errors_mapping.length)
 
@@ -125,8 +131,6 @@ class Poc{
             fetch(req)
                 .then((response) => {
                     response.json().then(function (data) {
-
-                        console.log(data['processId'])
 
                         resolve(data['processId']);
                     });
@@ -215,21 +219,23 @@ class Poc{
 
         csv = csv.join('\r\n');
 
-        let link = document.createElement('a');
+        let link;
 
-        let text_node = document.createTextNode("Download Csv");
+        if (document.getElementById('download-csv')) {
 
-        link.id = 'download-csv';
+            let old_button = document.getElementById("download-csv");
 
-        link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv));
+            link = create_download_button(csv);
 
-        link.setAttribute('class', 'btn btn-danger');
+            old_button.replaceWith(link)
 
-        link.setAttribute('download', 'yourfiletextgoeshere.csv');
+        } else {
+            
+            link = create_download_button(csv);
 
-        link.appendChild(text_node);
+            document.getElementById("section-column-mapping").appendChild(link);
 
-        document.getElementById("download-div").appendChild(link);
+        }
 
         // document.body.appendChild(link);
 
@@ -299,46 +305,50 @@ class Poc{
 
     }
 
-    error_messange(element,text){
+    error_messange(element, text){
 
          element.innerHTML=text;
-         element.classList.add("text-danger")
+
+         element.classList.add("text-danger");
 
     }
 
-     add_html_element(element,html){
+     add_html_element(element, html){
 
-         document.getElementById(element).innerHTML=html
+         document.getElementById(element).innerHTML=html;
 
     }
 
     continue_section(section, next_section) {
 
         let section_all = `section-${section}`;
+
         let nex_section = `section-${next_section}`;
+
         let menu_section = `menu-${section}`;
+
         let menu_next_section = `menu-${next_section}`;
 
         this.add_class(section_all,'d-none');
+
         this.remove_class(menu_section,'active');
 
         this.remove_class(nex_section,'d-none');
-        this.add_class(menu_next_section,'active')
 
-
+        this.add_class(menu_next_section,'active');
 
     }
 
     add_class(element,name_class){
 
-      document.getElementById(element).classList.add(name_class)
+      document.getElementById(element).classList.add(name_class);
 
 
     }
 
       remove_class(element,name_class){
 
-      document.getElementById(element).classList.remove(name_class)
+      document.getElementById(element).classList.remove(name_class);
 
 
     }
@@ -349,10 +359,7 @@ class Poc{
 
         let fileExtension = fileName.replace(/^.*\./, '');
 
-        return (fileExtension === "csv")
-
-
-
+        return (fileExtension === "csv");
 
     }
 
@@ -365,23 +372,43 @@ const Poc_functions = new Poc();
 
 document.getElementById('submit-account-setup').addEventListener('click', function (e) {
 
-    Poc_functions.submit_account_setup()
+    Poc_functions.submit_account_setup();
 
 
 });
 
 document.getElementById('submit-file-upload').addEventListener('click', function (e) {
 
-    Poc_functions.submit_upload_file()
+    Poc_functions.submit_upload_file('file_csv');
 
 
 });
 
 document.getElementById('submit-reload-upload').addEventListener('click', function (e) {
 
-    Poc_functions.submit_upload_file_reload()
+    Poc_functions.submit_upload_file('reload_file_csv');
 
 });
+
+function create_download_button(csv) {
+
+    let link = document.createElement('a');
+
+    let text_node = document.createTextNode("Download CSV");
+
+    link.id = 'download-csv';
+
+    link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv));
+
+    link.setAttribute('class', 'btn btn-danger');
+
+    link.setAttribute('download', 'yourfiletextgoeshere.csv');
+
+    link.appendChild(text_node);
+
+    return link
+
+}
 
 
 
