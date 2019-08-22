@@ -88,8 +88,7 @@ class Poc{
                     'danger');
 
             }
-
-            this.continue_section("file-upload", "column-mapping");
+            
 
 
         }else{
@@ -202,14 +201,24 @@ class Poc{
 
             if (this.errors_mapping.length > 0){
 
+                this.continue_section("file-upload", "column-mapping");
+
                 await this.create_csv_with_errors(this.errors_mapping, file_upload, this.processId);
 
             } else {
 
-                this.alert_message(document.getElementById("count-errors-mapping"),
-                    'File Without Errors!', 'success');
+                let active = $("#breadcrumb li.active").attr('id');
+                
+                if (active === 'menu-file-upload') {
 
-                console.log("without errors", this.errors_mapping);
+                    active = 'file-upload';
+
+                } else {
+
+                    active = 'column-mapping';
+                }
+
+                this.continue_section(active, "submit-correct-data");
 
             }
 
@@ -395,31 +404,43 @@ document.getElementById('submit-account-setup').addEventListener('click', functi
 
 document.getElementById('submit-file-upload').addEventListener('click', function (e) {
 
-    Poc_functions.submit_upload_file('file_csv');
+    // Poc_functions.submit_upload_file('file_csv');
+    select_file_alert('file_csv')
 
 
 });
 
 document.getElementById('submit-reload-upload').addEventListener('click', function (e) {
 
-    let myFile = document.getElementById('reload_file_csv').files[0];
+    select_file_alert('reload_file_csv');
+
+});
+
+function select_file_alert(input_id){
+
+    let alert_element_id = 'count-errors-mapping';
+
+    if (input_id === 'file_csv'){
+
+        alert_element_id = 'error_file_upload_text';
+
+    }
+
+    let myFile = document.getElementById(input_id).files[0];
 
     if (myFile !== undefined){
 
-        Poc_functions.submit_upload_file('reload_file_csv');
+        Poc_functions.submit_upload_file(input_id);
 
     } else {
 
-        let instance = new Poc();
-
-        instance.alert_message(document.getElementById("count-errors-mapping"),
+        Poc_functions.alert_message(document.getElementById(alert_element_id),
             'Select a file!',
             'danger');
 
     }
 
-
-});
+}
 
 function create_download_button(process_id) {
 
@@ -450,5 +471,3 @@ function create_download_button(process_id) {
         }
 
 }
-
-
