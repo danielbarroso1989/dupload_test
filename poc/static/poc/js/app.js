@@ -28,9 +28,10 @@ class Poc{
 
     async submit_account_setup() {
 
-
         let api_key = document.getElementById("api_user").value;
+
         let api_user = document.getElementById("api_key").value;
+
         let environment = document.getElementById("api_key").value;
 
         if (api_key && api_user) {
@@ -41,24 +42,29 @@ class Poc{
 
             if (result_validate_credentials) {
 
+                console.log("crdentials: ", result_validate_credentials);
+
                 this._api_key = api_key;
+
                 this._api_user = api_user;
+
                 this._environment = environment;
+
                 this.continue_section("account-setup", "file-upload");
-
-
 
             } else {
 
-                this.error_messange(document.getElementById("error_account_setup_text"), 'Error en credenciales')
+                this.alert_message(document.getElementById("error_account_setup_text"),
+                    'Error en credenciales', 'danger')
 
             }
 
+        } else {
 
-        }else{
-               this.error_messange(document.getElementById("error_account_setup_text"), 'Los campos son obligatorios')
+               this.alert_message(document.getElementById("error_account_setup_text"),
+                   'Los campos son obligatorios', 'danger')
+
         }
-
 
     }
 
@@ -66,7 +72,7 @@ class Poc{
 
         let myFile = document.getElementById(id).files[0];
 
-        if(this.validate_csv(myFile)){
+        if (this.validate_csv(myFile)){
 
             await this.ValidateFormatDoc(myFile);
 
@@ -77,17 +83,18 @@ class Poc{
                 if (this.errors_mapping.length === 1)
                     errors = 'error';
 
-                this.add_html_element('count-errors-mapping',
-                    `${this.errors_mapping.length} ${errors} found!`);
+                this.alert_message(document.getElementById("count-errors-mapping"),
+                    `${this.errors_mapping.length} ${errors} found. Download the csv file to check the errors!`,
+                    'danger');
 
             }
-
-            this.continue_section("file-upload", "column-mapping");
+            
 
 
         }else{
 
-            this.error_messange(document.getElementById("error_file_upload_text"), 'File invalid');
+            this.alert_message(document.getElementById("error_file_upload_text"),
+                'File invalid', 'danger');
 
         }
 
@@ -105,7 +112,8 @@ class Poc{
 
 
         }else{
-            this.error_messange(document.getElementById("error_column-mapping_tex"), 'File invalid')
+            this.alert_message(document.getElementById("error_column-mapping_tex"),
+                'File invalid', 'danger')
         }
 
     }
@@ -181,8 +189,11 @@ class Poc{
         let process_status = await this.query_process(this.processId);
 
         while(process_status['finished'] === false){
+
             await this.sleep(500);
+
             process_status = await this.query_process(this.processId);
+
         }
         if(process_status['interrupted'] === false){
 
@@ -190,11 +201,24 @@ class Poc{
 
             if (this.errors_mapping.length > 0){
 
-                await this.create_csv_with_errors(this.errors_mapping);
+                this.continue_section("file-upload", "column-mapping");
+
+                await this.create_csv_with_errors(this.errors_mapping, file_upload, this.processId);
 
             } else {
 
-                console.log("without errors", this.errors_mapping);
+                let active = $("#breadcrumb li.active").attr('id');
+                
+                if (active === 'menu-file-upload') {
+
+                    active = 'file-upload';
+
+                } else {
+
+                    active = 'column-mapping';
+                }
+
+                this.continue_section(active, "submit-correct-data");
 
             }
 
@@ -205,45 +229,48 @@ class Poc{
         }
     }
 
-    async create_csv_with_errors(results){
+    async create_csv_with_errors(results, file, process_id){
 
-        const items = typeof results !== 'object' ? JSON.parse(results) : results;
+        let request_haders = new Headers();
 
-        const replacer = (key, value) => value === null ? '' : value; // specify how you want to handle null values here
+        request_haders.append('Accept', 'application/json');
 
-        const header = Object.keys(items[0]);
+        let endpoint = 'http://localhost:8000/endpoint/';
 
-        let csv = items.map(row => header.map(fieldName => JSON.stringify(row[fieldName], replacer)).join(','));
+        let form_data = new FormData();
 
-        csv.unshift(header.join(','));
+        form_data.append('csv_file', file);
 
-        csv = csv.join('\r\n');
+        form_data.append('errors', JSON.stringify(results));
 
-        let link;
+        form_data.append('process_id', process_id);
 
-        if (document.getElementById('download-csv')) {
+        let req = new Request(endpoint, {
+            method: 'POST',
+            headers: request_haders,
+            body: form_data,
+        });
 
-            let old_button = document.getElementById("download-csv");
+        fetch(req)
+            .then((response)=>{
 
-            link = create_download_button(csv);
+                if (response.status === 200){
 
-            old_button.replaceWith(link)
+                    create_download_button(process_id);
 
-        } else {
-            
-            link = create_download_button(csv);
+                }
 
-            document.getElementById("section-column-mapping").appendChild(link);
+            })
+            .catch((error)=>{
 
-        }
+                console.log('ERROR: ', error.message);
 
-        // document.body.appendChild(link);
-
-        // document.querySelector('#download-csv').click();
+            });
 
     }
 
     async get_validate_results(process_id) {
+
 
         return new Promise(resolve => {
 
@@ -305,17 +332,15 @@ class Poc{
 
     }
 
-    error_messange(element, text){
+    alert_message(id_to_append, text, classes){
 
-         element.innerHTML=text;
-
-         element.classList.add("text-danger");
+        id_to_append.innerHTML = `<div id="error-text" class="alert alert-${classes} text-center id" role="alert">${text}</div>`;
 
     }
 
      add_html_element(element, html){
 
-         document.getElementById(element).innerHTML=html;
+         document.getElementById(element).innerHTML = `<div class="alert alert-danger text-center" role="alert">${html}</div>`;
 
     }
 
@@ -379,18 +404,45 @@ document.getElementById('submit-account-setup').addEventListener('click', functi
 
 document.getElementById('submit-file-upload').addEventListener('click', function (e) {
 
-    Poc_functions.submit_upload_file('file_csv');
+    // Poc_functions.submit_upload_file('file_csv');
+    select_file_alert('file_csv')
 
 
 });
 
 document.getElementById('submit-reload-upload').addEventListener('click', function (e) {
 
-    Poc_functions.submit_upload_file('reload_file_csv');
+    select_file_alert('reload_file_csv');
 
 });
 
-function create_download_button(csv) {
+function select_file_alert(input_id){
+
+    let alert_element_id = 'count-errors-mapping';
+
+    if (input_id === 'file_csv'){
+
+        alert_element_id = 'error_file_upload_text';
+
+    }
+
+    let myFile = document.getElementById(input_id).files[0];
+
+    if (myFile !== undefined){
+
+        Poc_functions.submit_upload_file(input_id);
+
+    } else {
+
+        Poc_functions.alert_message(document.getElementById(alert_element_id),
+            'Select a file!',
+            'danger');
+
+    }
+
+}
+
+function create_download_button(process_id) {
 
     let link = document.createElement('a');
 
@@ -398,17 +450,24 @@ function create_download_button(csv) {
 
     link.id = 'download-csv';
 
-    link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv));
+    link.setAttribute('href', 'http://localhost:8000/static/csv/' + process_id + '.csv');
 
     link.setAttribute('class', 'btn btn-danger');
 
-    link.setAttribute('download', 'yourfiletextgoeshere.csv');
+    link.setAttribute('download', 'errors.csv');
 
     link.appendChild(text_node);
 
-    return link
+    if (document.getElementById('download-csv')) {
+
+            let old_button = document.getElementById("download-csv");
+
+            old_button.replaceWith(link)
+
+        } else {
+
+            document.getElementById("section-column-mapping").appendChild(link);
+
+        }
 
 }
-
-
-
