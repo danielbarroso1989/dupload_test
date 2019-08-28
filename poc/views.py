@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
 from django.shortcuts import render
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
 import pandas as pd
 import json
-import csv
+import requests
 
 ENVIRONMENTS = (
     ('sbx', 'Sandbox'),
@@ -16,13 +14,16 @@ ENVIRONMENTS = (
 
 )
 
+url_environment = {"sbx": "https://edna.identitymind.com/im/admin/jax/merchant/"}
+
 
 def index(request):
 
     return render(request, 'poc/home.html', {'ENVIRONMENTS': ENVIRONMENTS,
-                                             })
+                                             }
+                  )
 
-@csrf_exempt
+
 def endpoint(request):
 
     csv_file = request.FILES["csv_file"]
@@ -48,5 +49,20 @@ def endpoint(request):
     return HttpResponse(status=200)
 
 
-def csv_func(request):
-    pass
+def basic_auth(request):
+
+    session = requests.Session()
+
+    api_user = request.POST['api_user']
+
+    api_key = request.POST['api_key']
+
+    environment = request.POST['environment']
+
+    auth_url = url_environment[environment]
+
+    session.auth = (api_user, api_key)
+
+    res = session.get(auth_url + api_user)
+
+    return HttpResponse(json.dumps({"code": res.status_code}), content_type="application/json")

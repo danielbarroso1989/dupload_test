@@ -8,15 +8,13 @@
 
     <div class="col-md-9 my-3">
 
-        <select class="form-control">
+        <select id="environment_select" class="form-control">
 
-            <option value="sbx">Sandbox</option>
+            {% for env in ENVIRONMENTS %}
 
-            <option value="stg">Staging</option>
+                <option value="{{ env.0 }}">{{ env.1 }}</option>
 
-            <option value="qar">QAR API</option>
-
-            <option value="qa58">QA58</option>
+            {% endfor %}
 
         </select>
     </div>
@@ -33,7 +31,7 @@
 
     <div class="col-md-9 my-3">
 
-        <input type="text" id="api_key" name="api_token"  class="form-control" placeholder="API KEY" required>
+        <input type="password" id="api_key" name="api_token"  class="form-control" placeholder="API KEY" required>
 
     </div>
 

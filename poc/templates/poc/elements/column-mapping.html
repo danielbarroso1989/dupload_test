@@ -1,8 +1,7 @@
+{% load static %}
 <h2>Column Mapping</h2>
 
 <div class="col-md-12" id="count-errors-mapping"></div>
-
-<div class="col-md-12"><span  id="error_column-mapping_text"></span></div>
 
 <div class="form row">
     <div class="col-md-3 my-3"><label> Data File</label></div>
@@ -17,6 +16,12 @@
         <div class="col-md-12">
             <input type="submit" value="Reload Upluoad" class="btn btn-primary" id="submit-reload-upload">
         </div>
+    </div>
+    <div class="col-md-3 my-3">
+        <div class="col-md-12" id="csv-container">
+            <img class="currently-loading" src="{% static 'poc/gifs/Preloader_4.gif' %}" alt="Be patient..." />
+        </div>
+
     </div>
 
 </div>

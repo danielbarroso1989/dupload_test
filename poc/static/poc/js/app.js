@@ -1,10 +1,28 @@
-const url = "http://localhost:8080/poc-forklift/validate";
+const url = "http://localhost:8080/poc-forklift/validate/";
 
 const url2 = "http://localhost:8080/poc-forklift/process/";
 
-const url3 = 'http://localhost:8080/poc-forklift/validate/results/';
+const url3 = "http://localhost:8080/poc-forklift/validate/results/";
 
-// let url_environment = `https://edna.identitymind.com/im/admin/jax/merchant/${this._api_user}`;
+//AJAX config for using CSRF
+// using jQuery
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
 
 
 class Poc{
@@ -28,27 +46,21 @@ class Poc{
 
     async submit_account_setup() {
 
-        let api_key = document.getElementById("api_user").value;
+        let api_key = document.getElementById("api_key").value;
 
-        let api_user = document.getElementById("api_key").value;
+        let api_user = document.getElementById("api_user").value;
 
-        let environment = document.getElementById("api_key").value;
+        let environment = document.getElementById("environment_select").value;
 
         if (api_key && api_user) {
 
-            //let result_validate_credentials = await this.validate_credentials(api_user,api_key,environment);
+            let result_validate_credentials = await this.validate_credentials(api_user, api_key, environment);
 
-            let result_validate_credentials = true;
-
-            if (result_validate_credentials) {
-
-                console.log("crdentials: ", result_validate_credentials);
+            if (result_validate_credentials['code'] === 200) {
 
                 this._api_key = api_key;
 
                 this._api_user = api_user;
-
-                this._environment = environment;
 
                 this.continue_section("account-setup", "file-upload");
 
@@ -88,7 +100,7 @@ class Poc{
                     'danger');
 
             }
-            
+
 
 
         }else{
@@ -96,24 +108,6 @@ class Poc{
             this.alert_message(document.getElementById("error_file_upload_text"),
                 'File invalid', 'danger');
 
-        }
-
-    }
-
-    async submit_upload_file_reload(){
-
-        let myFile = document.getElementById('reload_file_csv').files[0];
-
-        if(this.validate_csv(myFile)){
-
-            await this.ValidateFormatDoc(myFile);
-
-            this.add_html_element('count-errors-mapping',this.errors_mapping.length)
-
-
-        }else{
-            this.alert_message(document.getElementById("error_column-mapping_tex"),
-                'File invalid', 'danger')
         }
 
     }
@@ -126,14 +120,14 @@ class Poc{
 
             h.append('Accept', 'application/json');
 
-            let fd = new FormData();
+            let form_data = new FormData();
 
-            fd.append('file', upload_file);
+            form_data.append('file', upload_file);
 
             let req = new Request(url, {
                 method: 'POST',
                 headers: h,
-                body: fd
+                body: form_data
             });
 
             fetch(req)
@@ -182,9 +176,49 @@ class Poc{
 
     }
 
-    async ValidateFormatDoc(file_upload){
+    processor_request(upload_file){
 
-        this.processId = await this.create_validate_id(file_upload);
+        return new Promise(resolve => {
+
+            let h = new Headers();
+
+            h.append('Accept', 'application/json');
+
+            h.append("env", "sbx");
+
+            h.append("api-user", "icosandbox1");
+
+            h.append("api-token", "58ca74560ee641a19ad19af2324f14c329eda75b");
+
+            let form_data = new FormData();
+
+            form_data.append('file', upload_file);
+
+            let req = new Request(url2, {
+                method: 'POST',
+                headers: h,
+                body: form_data
+            });
+
+            fetch(req)
+                .then((response) => {
+                    response.json().then(function (data) {
+
+                        resolve(data['processId']);
+                    });
+
+                })
+                .catch((err) => {
+                    console.log('ERROR:', err.message);
+                });
+
+        });
+
+    }
+
+    async SubmitData(file_upload){
+
+        this.processId = await this.processor_request(file_upload);
 
         let process_status = await this.query_process(this.processId);
 
@@ -201,24 +235,77 @@ class Poc{
 
             if (this.errors_mapping.length > 0){
 
-                this.continue_section("file-upload", "column-mapping");
-
-                await this.create_csv_with_errors(this.errors_mapping, file_upload, this.processId);
+                console.log("errores al mandar info a edna")
 
             } else {
 
-                let active = $("#breadcrumb li.active").attr('id');
+                console.log("sin errores");
+
+                this.alert_message(document.getElementById("submit-data-errors"),
+                'Your data was submitted to EDNA!', 'success')
+
+            }
+
+        }else {
+
+            console.log("INTERRUPTED");
+
+        }
+
+    }
+
+    async ValidateFormatDoc(file_upload){
+
+        this.processId = await this.create_validate_id(file_upload);
+
+        let process_status = await this.query_process(this.processId);
+
+        while(process_status['finished'] === false){
+
+            await this.sleep(500);
+
+            progress_bar(process_status['processed'], process_status['total'], 'the_progress_bar');
+
+            process_status = await this.query_process(this.processId);
+
+        }
+
+        if(process_status['interrupted'] === false){
+            
+            try {
+
+                this.errors_mapping = await this.get_validate_results(this.processId);
+
+                console.log("thus: ", this.errors_mapping);
                 
-                if (active === 'menu-file-upload') {
+                if (this.errors_mapping.length > 0){
 
-                    active = 'file-upload';
-
+                    this.continue_section("file-upload", "column-mapping");
+    
+                    await this.create_csv_with_errors(this.errors_mapping, file_upload, this.processId);
+    
                 } else {
-
-                    active = 'column-mapping';
+    
+                    let active = $("#breadcrumb li.active").attr('id');
+    
+                    if (active === 'menu-file-upload') {
+    
+                        active = 'file-upload';
+    
+                    } else {
+    
+                        active = 'column-mapping';
+                    }
+    
+                    this.continue_section(active, "submit-correct-data");
+    
+                    this.alert_message(document.getElementById("submit-data-errors"),
+                    'File Without Errors!', 'success')
+    
                 }
+            } catch (e) {
 
-                this.continue_section(active, "submit-correct-data");
+                console.error(e);
 
             }
 
@@ -231,9 +318,11 @@ class Poc{
 
     async create_csv_with_errors(results, file, process_id){
 
-        let request_haders = new Headers();
+        let request_headers = new Headers();
 
-        request_haders.append('Accept', 'application/json');
+        request_headers.append('Accept', 'application/json');
+
+        request_headers.append('X-CSRFToken', csrftoken);
 
         let endpoint = 'http://localhost:8000/endpoint/';
 
@@ -247,7 +336,7 @@ class Poc{
 
         let req = new Request(endpoint, {
             method: 'POST',
-            headers: request_haders,
+            headers: request_headers,
             body: form_data,
         });
 
@@ -299,35 +388,42 @@ class Poc{
 
     }
 
-    async validate_credentials(api_user, api_key, url_environment){
+    async validate_credentials(api_user, api_key, environment){
 
-        let Url = `${url_environment}/${api_user}`;
+        return new Promise(resolve => {
 
-        let auth_string = `${api_user}:${api_key}`;
+            let request_headers = new Headers();
 
-        let request_headers = new Headers();
+            request_headers.append('Accept', 'application/json');
 
-        request_headers.set('Authorization', 'Basic' + btoa(auth_string));
+            request_headers.append('X-CSRFToken', csrftoken);
 
-        request_headers.append('Accept', 'application/json');
+            let endpoint = 'http://localhost:8000/auth/';
 
-        let req = new Request(Url, {
-            method: 'GET',
-            headers: request_headers,
-        });
+            let form_data = new FormData();
 
-        fetch(req)
-            .then((response)=>{
-                if(response.ok){
-                    return response.json();
-                }else{
-                    throw new Error('BAD REQUEST');
-                }
-            }).then((jsonData)=>{
-                console.log(jsonData)
-        })
-        .catch((err) => {
-            console.log('ERROR:', err.message);
+            form_data.append('api_user', api_user);
+
+            form_data.append('api_key', api_key);
+
+            form_data.append('environment', environment);
+
+            let req = new Request(endpoint, {
+                method: 'POST',
+                headers: request_headers,
+                body: form_data,
+            });
+
+            fetch(req)
+                .then((response) => {
+
+                    resolve(response.json());
+
+                    // console.log(response.json())
+                })
+                .catch((err) => {
+                    console.log('ERROR:', err.message);
+                });
         });
 
     }
@@ -416,6 +512,16 @@ document.getElementById('submit-reload-upload').addEventListener('click', functi
 
 });
 
+document.getElementById('submit-data').addEventListener('click', function () {
+
+    console.log("do it")
+
+    let myFile = document.getElementById('file_csv').files[0];
+
+    Poc_functions.SubmitData(myFile);
+
+});
+
 function select_file_alert(input_id){
 
     let alert_element_id = 'count-errors-mapping';
@@ -466,8 +572,25 @@ function create_download_button(process_id) {
 
         } else {
 
-            document.getElementById("section-column-mapping").appendChild(link);
+            document.getElementById("csv-container").appendChild(link);
 
         }
+
+}
+
+
+function progress_bar(progress, total, id) {
+
+    let percentage = Math.round((progress * 100) / total);
+
+    console.log("percentage: ", percentage);
+
+    $('.progress').css('display', 'block');
+
+    $('#the_progress_bar').attr('aria-valuenow', progress).css('width', percentage +'%');
+
+    let div = document.getElementById(id);
+
+    div.innerHTML = Math.round(percentage) + `% data verified`;
 
 }
