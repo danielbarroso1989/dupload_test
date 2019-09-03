@@ -4,6 +4,9 @@ const url2 = "http://localhost:8080/poc-forklift/process/";
 
 const url3 = "http://localhost:8080/poc-forklift/validate/results/";
 
+const api_headers = ['type', 'man', 'dob', 'tea', 'dfp', 'dft', 'phn', 'profile', 'bln', 'bfn', 'bsn', 'bco', 'bz',
+    'bc', 'memo', 'ip', 'assn', 'amt', 'dman', 'ac', 'as', 'amn', 'az', 'aco', 'asn'];
+
 //AJAX config for using CSRF
 // using jQuery
 function getCookie(name) {
@@ -52,11 +55,14 @@ class Poc{
 
         let environment = document.getElementById("environment_select").value;
 
-        if (api_key && api_user) {
+        if (api_key && api_user && environment) {
 
-            let result_validate_credentials = await this.validate_credentials(api_user, api_key, environment);
+            // let result_validate_credentials = await this.validate_credentials(api_user, api_key, environment);
 
-            if (result_validate_credentials['code'] === 200) {
+            let result_validate_credentials = true;
+
+            // if (result_validate_credentials['code'] === 200) {
+            if (result_validate_credentials) {
 
                 this._api_key = api_key;
 
@@ -86,7 +92,7 @@ class Poc{
 
         if (this.validate_csv(myFile)){
 
-            await this.ValidateFormatDoc(myFile);
+            await this.ValidateFormatDoc(myFile, id);
 
             if (this.errors_mapping.length > 0){
 
@@ -95,9 +101,7 @@ class Poc{
                 if (this.errors_mapping.length === 1)
                     errors = 'error';
 
-                this.alert_message(document.getElementById("count-errors-mapping"),
-                    `${this.errors_mapping.length} ${errors} found. Download the csv file to check the errors!`,
-                    'danger');
+                $('#summary-errors').html( `${this.errors_mapping.length} errors` );
 
             }
 
@@ -226,6 +230,8 @@ class Poc{
 
             await this.sleep(500);
 
+            progress_bar(process_status['processed'], process_status['total'], 'submit_progress_bar');
+
             process_status = await this.query_process(this.processId);
 
         }
@@ -241,8 +247,10 @@ class Poc{
 
                 console.log("sin errores");
 
-                this.alert_message(document.getElementById("submit-data-errors"),
-                'Your data was submitted to EDNA!', 'success')
+                $("#data_submitted_header").text("Data Sent").css("font-weight","Bold");
+
+                // this.alert_message(document.getElementById("submit-data-errors"),
+                // 'Your data was submitted to EDNA!', 'success')
 
             }
 
@@ -254,7 +262,7 @@ class Poc{
 
     }
 
-    async ValidateFormatDoc(file_upload){
+    async ValidateFormatDoc(file_upload, id){
 
         this.processId = await this.create_validate_id(file_upload);
 
@@ -264,7 +272,36 @@ class Poc{
 
             await this.sleep(500);
 
-            progress_bar(process_status['processed'], process_status['total'], 'the_progress_bar');
+            if (id === 'file_csv') {
+                progress_bar(process_status['processed'], process_status['total'], 'the_progress_bar');
+            } else {
+
+                let button = document.createElement('button');
+
+                let text_node = document.createTextNode("Loading...");
+
+                button.id = 'download-csv';
+
+                button.setAttribute('class', 'btn btn-primary');
+
+                button.appendChild(text_node);
+
+                let span = document.createElement('span');
+
+                span.setAttribute('class', 'spinner-border spinner-border-sm');
+
+                span.setAttribute('role', 'status');
+
+                span.setAttribute('aria-hidden', 'true');
+
+                let old_button = document.getElementById("download-csv");
+
+                old_button.replaceWith(button);
+
+                document.getElementById('download-csv').appendChild(span);
+
+                progress_bar(process_status['processed'], process_status['total'], 'the_progress_bar_upload');
+            }
 
             process_status = await this.query_process(this.processId);
 
@@ -299,8 +336,8 @@ class Poc{
     
                     this.continue_section(active, "submit-correct-data");
     
-                    this.alert_message(document.getElementById("submit-data-errors"),
-                    'File Without Errors!', 'success')
+                    // this.alert_message(document.getElementById("submit-data-errors"),
+                    // 'File Without Errors!', 'success')
     
                 }
             } catch (e) {
@@ -356,6 +393,144 @@ class Poc{
 
             });
 
+    }
+
+    async mapping_columns(file){
+
+        let csv_headers = await this.get_headers(file);
+
+        csv_headers = csv_headers['headers'];
+
+        let select_html = `<select class="js-example-basic-single api_headers new_header"></select>`;
+
+        $.each(csv_headers, function (i, val) {
+
+            let tr = `<tr><th scope="row">${val}</th><th scope="row">${select_html}</th></tr>`;
+
+             $("#headers_tables tbody").append(tr);
+
+        });
+
+        let headers_select = $('.api_headers');
+
+        headers_select.select2({
+            width: '30%'
+        });
+
+        $.fn.populate = function () {
+
+            let $this = $(this);
+
+            $.each(api_headers, function (i, val) {
+
+                $this.append(`<option value="${val}">${val}</option>`);
+
+            });
+        };
+
+        headers_select.populate();
+
+    }
+
+    async get_headers(file){
+
+        return new Promise(resolve => {
+
+            let request_headers = new Headers();
+
+            request_headers.append('Accept', 'application/json');
+
+            request_headers.append('X-CSRFToken', csrftoken);
+
+            let endpoint = 'http://localhost:8000/get_headers/';
+
+            let form_data = new FormData();
+
+            form_data.append('csv_file', file);
+
+            let req = new Request(endpoint, {
+                method: 'POST',
+                headers: request_headers,
+                body: form_data,
+            });
+
+            fetch(req)
+                .then((response) => {
+
+                    resolve(response.json());
+
+                })
+                .catch((err) => {
+                    console.log('ERROR:', err.message);
+                });
+
+        });
+
+    }
+
+    async change_csv_headers(file){
+
+        let new_file = await this.get_new_headers(file);
+
+        console.log(new_file);
+        //
+        // var filename = document.getElementById('file_csv').value = new_file;
+
+        // let prueba = await this.create_validate_id(filename);
+        //
+        // console.log("prueba: ", prueba)
+
+    }
+
+    async get_new_headers(file){
+
+        return new Promise(resolve => {
+
+            let new_headers = $('.new_header');
+
+            let headers_array = [];
+
+            for(var i = 0; i < new_headers.length; i++) {
+
+                headers_array.push(new_headers[i].value);
+
+            }
+
+            let request_headers = new Headers();
+
+            request_headers.append('Accept', 'application/json');
+
+            request_headers.append('X-CSRFToken', csrftoken);
+
+            let endpoint = 'http://localhost:8000/replace_headers/';
+
+            let form_data = new FormData();
+
+            form_data.append('csv_file', file);
+
+            console.log(JSON.stringify(headers_array));
+
+            form_data.append('new_headers', JSON.stringify(headers_array));
+
+            let req = new Request(endpoint, {
+                method: 'POST',
+                headers: request_headers,
+                body: form_data,
+            });
+
+            fetch(req)
+            .then((response)=>{
+
+                resolve(window.location.origin + "/static/csv/new_headers.csv")
+
+            })
+            .catch((error)=>{
+
+                console.log('ERROR: ', error.message);
+
+            });
+
+        });
     }
 
     async get_validate_results(process_id) {
@@ -498,11 +673,28 @@ document.getElementById('submit-account-setup').addEventListener('click', functi
 
 });
 
+// document.getElementById('get-headers-button').addEventListener('click', function (e) {
+//
+//     let my_file = get_file('file_csv');
+//
+//     Poc_functions.mapping_columns(my_file);
+//
+//
+// });
+
+document.getElementById('change-header').addEventListener('click', function (e) {
+
+    let my_file = get_file('file_csv');
+
+    Poc_functions.change_csv_headers(my_file);
+
+
+});
+
 document.getElementById('submit-file-upload').addEventListener('click', function (e) {
 
     // Poc_functions.submit_upload_file('file_csv');
-    select_file_alert('file_csv')
-
+    select_file_alert('file_csv');
 
 });
 
@@ -514,9 +706,17 @@ document.getElementById('submit-reload-upload').addEventListener('click', functi
 
 document.getElementById('submit-data').addEventListener('click', function () {
 
-    console.log("do it")
+    let myFile;
 
-    let myFile = document.getElementById('file_csv').files[0];
+    if (document.getElementById('reload_file_csv').files[0]) {
+
+        myFile = document.getElementById('reload_file_csv').files[0];
+
+    } else {
+
+        myFile = document.getElementById('file_csv').files[0];
+
+    }
 
     Poc_functions.SubmitData(myFile);
 
@@ -533,6 +733,7 @@ function select_file_alert(input_id){
     }
 
     let myFile = document.getElementById(input_id).files[0];
+    console.log(myFile);
 
     if (myFile !== undefined){
 
@@ -585,12 +786,73 @@ function progress_bar(progress, total, id) {
 
     console.log("percentage: ", percentage);
 
-    $('.progress').css('display', 'block');
+    if (id === 'the_progress_bar'){
 
-    $('#the_progress_bar').attr('aria-valuenow', progress).css('width', percentage +'%');
+        $('#progress_container').css('display', 'block');
 
-    let div = document.getElementById(id);
+        $('#the_progress_bar').attr('aria-valuenow', progress).css('width', percentage +'%');
 
-    div.innerHTML = Math.round(percentage) + `% data verified`;
+        let div = document.getElementById(id);
+
+        div.innerHTML = Math.round(percentage) + `% data verified`;
+
+    } else if(id === 'the_progress_bar_upload') {
+
+        $('#progress_container_upload').css('display', 'block');
+
+        $('#the_progress_bar_upload').attr('aria-valuenow', progress).css('width', percentage +'%');
+
+        let div = document.getElementById(id);
+
+        div.innerHTML = Math.round(percentage) + `% data verified`;
+
+    } else if (id === 'submit_progress_bar') {
+
+        $('#submit_progress_bar_container').css('display', 'block');
+
+        $('#submit_progress_bar').attr('aria-valuenow', progress).css('width', percentage +'%');
+
+        let div = document.getElementById(id);
+
+        div.innerHTML = Math.round(percentage) + `% data sent`;
+    }
 
 }
+
+$('input[type="file"]').change(function(e){
+
+    let fileName = e.target.files[0].name;
+
+    $(this).next('.custom-file-label').html(fileName);
+
+});
+
+
+function get_file(input_id) {
+
+    let myFile = document.getElementById(input_id).files[0];
+
+    console.log(myFile);
+
+    return myFile
+
+}
+
+$('.js-example-basic-single').select2();
+
+// debugger;
+// data = [
+//     ['Mazda', 2001, 2000],
+//     ['Pegeout', 2010, 5000],
+//     ['Honda Fit', 2009, 3000],
+//     ['Honda CRV', 2010, 6000],
+// ];
+// let cs_url = window.location + "static/csv/new_headers.csv";
+//
+// console.log("csv: ", cs_url);
+// // debugger;
+// $('#my_tests').jexcel({
+//     csv:'http://localhost:8000/static/csv/new_headers.csv',
+//     csvHeaders: true,
+//     defaultColWidth: 100
+// });

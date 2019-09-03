@@ -2,15 +2,22 @@
 
 {% block content %}
 
-    <nav aria-label="breadcrumb" class="mt-4">
-        <ol id="breadcrumb" class="breadcrumb">
-            <li class="breadcrumb-item active" id="menu-account-setup">Account Setup</li>
-            <li class="breadcrumb-item" id="menu-file-upload">File Upload</li>
-            <li class="breadcrumb-item" id="menu-column-mapping" aria-current="page">Column Mapping</li>
-            <li class="breadcrumb-item" id="menu-submit-correct-data" aria-current="page">Submit Data</li>
-        </ol>
-    </nav>
+    <div class="row">
+        <div class="col-md-12">
+            <h4 class="" contenteditable="true">Follow the next steps</h4>
+        </div>
+    </div>
 
+    <div class="row">
+        <div class="col-md-12">
+            <ul id="breadcrumb" class="breadcrumb">
+                <li id="menu-account-setup" class="breadcrumb-item active"> <a>1. Account Setup</a> </li>
+                <li id="menu-file-upload" class="breadcrumb-item"> <a>2. Upload File</a> </li>
+                <li id="menu-column-mapping" class="breadcrumb-item"> <a>3. Column Mapping</a> </li>
+                <li id="menu-submit-correct-data" class="breadcrumb-item"> <a>4. Submit Data</a> </li>
+            </ul>
+        </div>
+    </div>
 
     <section id="section-account-setup" class="">
         {% include "poc/elements/account_setup.html" %}

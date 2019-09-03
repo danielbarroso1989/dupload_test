@@ -1,40 +1,116 @@
-<h2>Account Setup</h2>
-
-<div class="col-md-12" id="error_account_setup_text"></div>
-
-<div class="form row">
-
-    <div class="col-md-3 my-3"><label>Environment</label></div>
-
-    <div class="col-md-9 my-3">
-
-        <select id="environment_select" class="form-control">
-
-            {% for env in ENVIRONMENTS %}
-
-                <option value="{{ env.0 }}">{{ env.1 }}</option>
-
-            {% endfor %}
-
-        </select>
+<div class="row">
+    <div class="col-md-12">
+        <h1>1. Account Setup</h1>
     </div>
-
-    <div class="col-md-3 my-3"><label>Api User</label></div>
-
-    <div class="col-md-9 my-3">
-
-        <input type="text" id="api_user" name="api_user" placeholder="API USER" class="form-control" required>
-
-    </div>
-
-    <div class="col-md-3 my-3"><label>Api Key</label></div>
-
-    <div class="col-md-9 my-3">
-
-        <input type="password" id="api_key" name="api_token"  class="form-control" placeholder="API KEY" required>
-
-    </div>
-
-    <div class="col-md-12"><input type="submit" value="Continue" class="btn btn-primary" id="submit-account-setup"></div>
-
 </div>
+
+<div class="py-5">
+    <div class="container">
+        <div class="col-md-12" id="error_account_setup_text"></div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <h6>Fill in the information below</h6>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+
+                    <div class="form-group row">
+                        <label class="col-2">Environment</label>
+                        <div class="col-10">
+                            <select id="environment_select" class="custom-select" required>
+                                <option value="" selected="">Open this select menu</option>
+                                {% for env in ENVIRONMENTS %}
+
+                                    <option value="{{ env.0 }}">{{ env.1 }}</option>
+
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-2">API User</label>
+                        <div class="col-10">
+                            <input type="text"
+                                   id="api_user"
+                                   class="form-control"
+                                   name="api_user"
+                                   placeholder="API USER"
+                                   required
+                            >
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="api_key" class="col-2 col-form-label">API Key</label>
+                        <div class="col-10">
+                            <input type="password"
+                                   id="api_key"
+                                   name="api_token"
+                                   class="form-control"
+                                   placeholder="API KEY"
+                                   required
+                                   style="opacity: 0.5;"
+                            >
+                        </div>
+                    </div>
+                    <button id="submit-account-setup" class="btn btn-primary">Continue</button>
+
+            </div>
+        </div>
+    </div>
+    <div id="my_tests"></div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+{#<div class="form row">#}
+{##}
+{#    <div class="col-md-3 my-3"><label>Environment</label></div>#}
+{##}
+{#    <div class="col-md-9 my-3">#}
+{##}
+{#        <select id="environment_select" class="form-control">#}
+{##}
+{#            {% for env in ENVIRONMENTS %}#}
+{##}
+{#                <option value="{{ env.0 }}">{{ env.1 }}</option>#}
+{##}
+{#            {% endfor %}#}
+{##}
+{#        </select>#}
+{#    </div>#}
+{##}
+{#    <div class="col-md-3 my-3"><label>Api User</label></div>#}
+{##}
+{#    <div class="col-md-9 my-3">#}
+{##}
+{#        <input type="text" id="api_user" name="api_user" placeholder="API USER" class="form-control" required>#}
+{##}
+{#    </div>#}
+{##}
+{#    <div class="col-md-3 my-3"><label>Api Key</label></div>#}
+{##}
+{#    <div class="col-md-9 my-3">#}
+{##}
+{#        <input type="password" id="api_key" name="api_token"  class="form-control" placeholder="API KEY" required>#}
+{##}
+{#    </div>#}
+{##}
+{#    <div class="col-md-12"><input type="submit" value="Continue" class="btn btn-primary" id="submit-account-setup"></div>#}
+{##}
+{#</div>#}
