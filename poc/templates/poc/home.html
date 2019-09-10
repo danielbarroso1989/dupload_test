@@ -14,7 +14,9 @@
                 <li id="menu-account-setup" class="breadcrumb-item active"> <a>1. Account Setup</a> </li>
                 <li id="menu-file-upload" class="breadcrumb-item"> <a>2. Upload File</a> </li>
                 <li id="menu-column-mapping" class="breadcrumb-item"> <a>3. Column Mapping</a> </li>
-                <li id="menu-submit-correct-data" class="breadcrumb-item"> <a>4. Submit Data</a> </li>
+                <li id="menu-editing-data" class="breadcrumb-item"> <a>4. Editing Data</a> </li>
+                <li id="menu-data-validation" class="breadcrumb-item"> <a>5. Data Validation</a> </li>
+                <li id="menu-submit-correct-data" class="breadcrumb-item"> <a>6. Submit Data</a> </li>
             </ul>
         </div>
     </div>
@@ -28,9 +30,16 @@
         {% include "poc/elements/file-upload.html" %}
     </section>
 
-
     <section id="section-column-mapping" class="d-none">
         {% include "poc/elements/column-mapping.html" %}
+    </section>
+
+    <section id="section-editing-data" class="d-none">
+        {% include "poc/elements/editing-data.html" %}
+    </section>
+
+    <section id="section-data-validation" class="d-none">
+        {% include "poc/elements/data-validation.html" %}
     </section>
 
     <section id="section-submit-correct-data" class="d-none">
