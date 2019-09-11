@@ -404,7 +404,6 @@ class Poc{
     }
 
     async mapping_columns(file) {
-        // debugger;
 
         let csv_headers = await this.get_headers(file);
 
@@ -455,9 +454,9 @@ class Poc{
 
             let is_type = result['is_type'];
 
-            let headers_length = headers.length;
-
-            let set_table_width = $('#edit_data');
+            // let headers_length = headers.length;
+            //
+            // let set_table_width = $('#edit_data');
 
             var width = document.getElementById('breadcrumb').offsetWidth;
 
