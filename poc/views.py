@@ -9,6 +9,8 @@ from operator import itemgetter
 
 import sys
 
+import numpy as np
+
 ENVIRONMENTS = (
     ('sbx', 'Sandbox'),
     ('stg', 'Staging'),
@@ -111,7 +113,7 @@ def show_correct_file_in_ui(request):
 
     new_csv = pd.read_csv('./poc/static/csv/show_csv.csv')
 
-    new_csv = new_csv.fillna(0)
+    new_csv = new_csv.replace(np.nan, '', regex=True)
 
     data_list = new_csv.values.tolist()
 
@@ -214,7 +216,7 @@ def show_row_with_errors(request):
 
     lines = []
 
-    new_err = sorted(errors, key = lambda i: i['line'])
+    new_err = sorted(errors, key=lambda i: i['line'])
 
     try:
 
@@ -225,8 +227,6 @@ def show_row_with_errors(request):
         extract_line_fields = string_errors['extract_line_fields']
 
         errors_data_frame = pd.DataFrame(extract_errors, columns=['Line', 'Errors']).sort_values(by='Line').reset_index(drop=True)
-
-        print("data frmae", errors_data_frame)
 
         for index, row in errors_data_frame.iterrows():
 
@@ -253,8 +253,6 @@ def show_row_with_errors(request):
                         new_err[j][key] = index + 1
 
         new_err = sorted(new_err, key=lambda i: i['line'])
-
-        print("otr", new_err)
 
         csv_file.to_csv('./poc/static/csv/csv_errors.csv', index=False)
 
@@ -331,11 +329,13 @@ def validate_changes(request):
 
     csv = pd.read_csv('./poc/static/csv/get_process_id.csv')
 
+    csv = csv.replace(np.nan, '', regex=True)
+
     for index, row in data_frame.iterrows():
 
         for h in headers:
 
-            if h != 'Line' and h != 'Errors':
+            if h != 'Line' and h != 'Errors' and row['Line']:
 
                 line = row['Line'] - 1
 

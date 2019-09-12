@@ -404,7 +404,6 @@ class Poc{
     }
 
     async mapping_columns(file) {
-        // debugger;
 
         let csv_headers = await this.get_headers(file);
 
@@ -455,10 +454,6 @@ class Poc{
 
             let is_type = result['is_type'];
 
-            let headers_length = headers.length;
-
-            let set_table_width = $('#edit_data');
-
             var width = document.getElementById('breadcrumb').offsetWidth;
 
             this.editing_table = jexcel(document.getElementById('edit_data'),{
@@ -480,6 +475,8 @@ class Poc{
                 this.editing_table.setHeader(0, 'type');
 
             }
+
+            $('.se-pre-con').css('display', 'none');
 
         }
 
@@ -594,6 +591,8 @@ class Poc{
             this.editing_table.setHeader(0, 'type');
         }
 
+        $('.se-pre-con').css('display', 'none');
+
     }
 
     async get_new_headers(file){
@@ -655,6 +654,10 @@ class Poc{
 
         let process_status = await this.query_process(process_id);
 
+        $('#validate-jexcel').toggle();
+
+        $('#validating_button').toggle();
+
         while(process_status['finished'] === false){
 
             await this.sleep(500);
@@ -673,6 +676,10 @@ class Poc{
                     // await this.create_csv_with_errors(this.errors_mapping, file_upload, process_id);
 
                     this.continue_section("editing-data", "data-validation");
+
+                    let revalidate_spinner = $('.se-pre-con-val');
+
+                    revalidate_spinner.css('display', 'block');
 
                     let results = await this.show_row_with_errors(this.errors_mapping, process_id, 'file');
 
@@ -701,6 +708,8 @@ class Poc{
                         style: style_dict,
                         onselection: this.selectionActive,
                     });
+
+                    revalidate_spinner.toggle();
 
                     let error_column = results['headers'].length - 1;
 
@@ -739,6 +748,14 @@ class Poc{
     }
 
     async revalidate_document(){
+
+        let re_validate_button = $('#re-validating-spin');
+
+        let validate_button = $('#validate-changes');
+
+        re_validate_button.toggle();
+
+        validate_button.toggle();
 
         let results = await this.validate_changes();
 
@@ -785,8 +802,6 @@ class Poc{
 
                     document.getElementById('jexcel').appendChild(div);
 
-                    let set_table_width = $("#my_tests");
-
                     var width = document.getElementById('breadcrumb').offsetWidth;
 
                     this.validation_table = jexcel(document.getElementById("my_tests"),{
@@ -800,6 +815,10 @@ class Poc{
                         style: style_dict,
                         onselection: this.selectionActive,
                     });
+
+                    re_validate_button.toggle();
+
+                    validate_button.toggle();
 
                     let error_column = results['headers'].length - 1;
 
