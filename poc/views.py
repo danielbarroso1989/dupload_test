@@ -216,27 +216,22 @@ def show_row_with_errors(request):
 
     lines = []
 
-    new_err = sorted(errors, key=lambda i: i['line'])
+    headers = csv_file.columns.tolist()
 
     try:
 
-        string_errors = convert_errors_to_string(errors)
+        get_all_arrays = main_array(sorted(errors, key=lambda i: i['line']), headers)
 
-        extract_errors = string_errors['extract_errors']
+        extract_errors = get_all_arrays['extract_errors']
 
-        extract_line_fields = string_errors['extract_line_fields']
+        style_dict = get_all_arrays['style_dict'][0]
 
-        errors_data_frame = pd.DataFrame(extract_errors, columns=['Line', 'Errors']).sort_values(by='Line').reset_index(drop=True)
+        errors_per_cell = get_all_arrays['errors_per_cell'][0]
+
+        errors_data_frame = pd.DataFrame(extract_errors,
+                                         columns=['Line', 'Errors']).sort_values(by='Line').reset_index(drop=True)
 
         for index, row in errors_data_frame.iterrows():
-
-            for i in range(len(extract_line_fields)):
-
-                for key in extract_line_fields[i]:
-
-                    if key == 'line' and row[0] == extract_line_fields[i][key]:
-
-                        extract_line_fields[i][key] = index + 1
 
             lines.append(row[0])
 
@@ -244,63 +239,13 @@ def show_row_with_errors(request):
 
             csv_file.at[row[0] - 1, 'Errors'] = row[1]
 
-            for j in range(len(new_err)):
-
-                for key in new_err[j]:
-
-                    if key == 'line' and row[0] == new_err[j][key]:
-
-                        new_err[j][key] = index + 1
-
-        new_err = sorted(new_err, key=lambda i: i['line'])
+            csv_file_with_errors.append(csv_file.iloc[row[0] - 1, :])
 
         csv_file.to_csv('./poc/static/csv/csv_errors.csv', index=False)
 
-        csv_errors = pd.read_csv('./poc/static/csv/csv_errors.csv')
+        data_frame_with_errors = pd.DataFrame(csv_file_with_errors).replace(np.nan, '', regex=True)
 
-        for index, row in errors_data_frame.iterrows():
-
-            csv_file_with_errors.append(csv_errors.iloc[row[0] - 1, :])
-
-        data_frame_with_errors = pd.DataFrame(csv_file_with_errors)
-
-        data = data_frame_with_errors.to_json()
-
-        data = json.loads(data)
-
-        headers = csv_file.columns.tolist()
-
-        array_data = get_row_identifier(extract_line_fields, headers)
-
-        style_dict = set_style(array_data)
-
-        errors_per_cell = set_error_to_cell(new_err, headers)
-
-        groups = []
-
-        data_for_jexcel = []
-
-        for attr, value in data.items():
-
-            groups.append(value)
-
-        for li in lines:
-
-            array_per_line = []
-
-            for index in range(len(groups)):
-
-                for key in groups[index]:
-
-                    linea = li - 1
-
-                    if str(linea) == key:
-
-                        array_per_line.append(groups[index][key])
-
-            data_for_jexcel.append(array_per_line)
-
-        data_for_jexcel = sorted(data_for_jexcel, key=itemgetter(-2))
+        data_for_jexcel = data_frame_with_errors.values.tolist()
 
         return HttpResponse(json.dumps({"headers": headers,
                                         "data": data_for_jexcel,
@@ -365,149 +310,64 @@ def validate_changes(request):
         sys.exit(1)
 
 
-def set_style(array):
-    """Create Dictionary with cell Identifier as key and background color as value. It sets style to those cells"""
-
-    back_ground = 'background-color: #fff3cd'
-
-    style_dict = dict()
-
-    letter = ''
-
-    for index in range(len(array)):
-
-        for key in array[index]['location']:
-
-            if 25 < key > 51:
-
-                letter += 'A'
-
-                remainder = (key % 25) - 1
-
-                letter += ALPHABET[remainder]
-
-            elif key <= 25:
-
-                letter = ALPHABET[key]
-
-            identifier = letter + str(array[index]['line'])
-
-            style_dict[identifier] = back_ground
-
-    return style_dict
-
-
-def convert_errors_to_string(errors_list):
-
-    """Iterate over errors list and extract line and errors. It converts errors objects in string."""
+def main_array(errors, headers):
+    """Get arrays to set style, comments and errors in the table."""
 
     new_array = []
 
     extract_errors = []
 
-    line_fields = dict()
+    style_dict = dict()
+
+    list_errors_per_cell = []
+
+    dict_errors_per_cell = dict()
 
     extract_line_fields = []
 
-    for index in range(len(errors_list)):
+    letter = ''
 
-        new_array.append(errors_list[index]['line'])
+    for index in range(len(errors)):
 
-        line_fields['line'] = errors_list[index]['line']
-
-        line_fields['field'] = []
+        new_array.append(errors[index]['line'])
 
         errors_to_string = ''
 
-        for key in errors_list[index]['errors']:
+        for key in errors[index]['errors']:
 
             errors_to_string += 'Field: ' + key['field'] + ' Error: ' + key['error'] + '\n'
 
-            line_fields['field'].append(key['field'])
+            location = headers.index(key['field'])
+
+            if 25 < location < 51:
+
+                letter += 'A'
+
+                remainder = (location % 25) - 1
+
+                letter += ALPHABET[remainder]
+
+            elif location <= 25:
+
+                letter = ALPHABET[location]
+
+            identifier = letter + str(index + 1)
+
+            style_dict[identifier] = 'background-color: #fff3cd'
+
+            dict_errors_per_cell[identifier] = key['error']
 
         new_array.append(errors_to_string)
 
         extract_errors.append(new_array)
 
-        extract_line_fields.append(line_fields)
-
         new_array = []
 
-        line_fields = dict()
+    extract_line_fields.append(style_dict)
 
-    return {'extract_errors': extract_errors, 'extract_line_fields': extract_line_fields}
+    list_errors_per_cell.append(dict_errors_per_cell)
 
-
-def get_row_identifier(extract_line_fields, headers):
-    """Get header position and convert it to a letter to locate it on csv file."""
-
-    line_and_location_lis = dict()
-
-    array_data = []
-
-    for indice in range(len(extract_line_fields)):
-
-        line_and_location_lis['line'] = extract_line_fields[indice]['line']
-
-        line_and_location_lis['location'] = []
-
-        for key in extract_line_fields[indice]['field']:
-
-            location = headers.index(key)
-
-            line_and_location_lis['location'].append(location)
-
-        array_data.append(line_and_location_lis)
-
-        line_and_location_lis = dict()
-
-    return array_data
-
-
-def set_error_to_cell(errors_list, headers):
-
-    array_data = []
-
-    line_and_location_list = dict()
-
-    for index in range(len(errors_list)):
-
-        line_and_location_list['line'] = errors_list[index]['line']
-
-        line_and_location_list['field'] = dict()
-
-        for key in errors_list[index]['errors']:
-
-            location = headers.index(key['field'])
-
-            line_and_location_list['field'][location] = key['error']
-
-        array_data.append(line_and_location_list)
-
-        line_and_location_list = dict()
-
-    erros_dict = dict()
-
-    letter = ''
-
-    for index in range(len(array_data)):
-
-        for key in array_data[index]['field']:
-
-            if 25 < key > 51:
-
-                letter += 'A'
-
-                remainder = (key % 25) - 1
-
-                letter += ALPHABET[remainder]
-
-            elif key <= 25:
-
-                letter = ALPHABET[key]
-
-            identifier = letter + str(array_data[index]['line'])
-
-            erros_dict[identifier] = array_data[index]['field'][key]
-
-    return erros_dict
+    return {'extract_errors': extract_errors,
+            'style_dict': extract_line_fields,
+            'errors_per_cell': list_errors_per_cell
+            }
