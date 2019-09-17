@@ -5,19 +5,13 @@ from django.http import HttpResponse
 import pandas as pd
 import json
 import requests
-from operator import itemgetter
 
 import sys
 
 import numpy as np
 
-ENVIRONMENTS = (
-    ('sbx', 'Sandbox'),
-    ('stg', 'Staging'),
-    ('qar', 'QAR API'),
-    ('qa58', 'QA58'),
+from poc.choices import ENVIRONMENTS
 
-)
 
 ALPHABET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
             'V', 'W', 'X', 'Y', 'Z']
