@@ -34,9 +34,10 @@ class Poc{
 
     constructor(){
 
-        this._api_key= undefined;
+        this._api_key = undefined;
         this._api_user = undefined;
         this._environment = undefined;
+        this._job_name = undefined;
         this._csv_file = undefined;
         this.errors_mapping = undefined;
         this.processId  = undefined;
@@ -54,15 +55,15 @@ class Poc{
 
     async submit_account_setup() {
 
-        let api_key = document.getElementById("api_key").value;
+        this._api_key = document.getElementById("api_key").value;
 
-        let api_user = document.getElementById("api_user").value;
+        this._api_user = document.getElementById("api_user").value;
 
-        let environment = document.getElementById("environment_select").value;
+        this._environment = document.getElementById("environment_select").value;
 
-        let job_name = document.getElementById("job_name").value;
+        this._job_name = document.getElementById("job_name").value;
 
-        if (api_key && api_user && environment) {
+        if (this._api_key && this._api_user && this._environment && this._job_name) {
 
             // let result_validate_credentials = await this.validate_credentials(api_user, api_key, environment);
 
@@ -71,9 +72,9 @@ class Poc{
             // if (result_validate_credentials['code'] === 200) {
             if (result_validate_credentials) {
 
-                this._api_key = api_key;
-
-                this._api_user = api_user;
+                // this._api_key = api_key;
+                //
+                // this._api_user = api_user;
 
                 this.continue_section("account-setup", "file-upload");
 
@@ -498,6 +499,10 @@ class Poc{
             let form_data = new FormData();
 
             form_data.append('csv_file', file);
+            form_data.append('api_key', this._api_key);
+            form_data.append('api_user', this._api_user);
+            form_data.append('environment', this._environment);
+            form_data.append('job_name', this._job_name);
 
             let req = new Request(endpoint, {
                 method: 'POST',

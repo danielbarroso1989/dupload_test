@@ -12,6 +12,10 @@ import numpy as np
 
 from poc.choices import ENVIRONMENTS
 
+from poc.models import Process, Status
+
+from django.contrib.auth.models import User
+
 
 ALPHABET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
             'V', 'W', 'X', 'Y', 'Z']
@@ -101,11 +105,31 @@ def show_correct_file_in_ui(request):
 
     csv_file = request.FILES["csv_file"]
 
+    api_user = request.POST["api_user"]
+
+    api_key = request.POST["api_key"]
+
+    environment = request.POST["environment"]
+
+    job_name = request.POST["job_name"]
+
     csv_input = pd.read_csv(csv_file)
 
-    csv_input.to_csv('./poc/static/csv/show_csv.csv', index=False)
+    user = User.objects.get(pk=2)
 
-    new_csv = pd.read_csv('./poc/static/csv/show_csv.csv')
+    status_new = Status.objects.get(pk=1)
+
+    new_process = Process.objects.create(name=job_name,
+                                         api_user=api_user,
+                                         api_token=api_key,
+                                         environment=environment,
+                                         id_user=user,
+                                         id_status=status_new,
+                                         )
+
+    csv_input.to_csv('./poc/static/csv/edit_csv_' + str(new_process.pk) + '.csv', index=False)
+
+    new_csv = pd.read_csv('./poc/static/csv/edit_csv_' + str(new_process.pk) + '.csv')
 
     new_csv = new_csv.replace(np.nan, '', regex=True)
 
@@ -120,7 +144,8 @@ def show_correct_file_in_ui(request):
 
     return HttpResponse(json.dumps({"headers": data_headers,
                                     "data": data_list,
-                                    "is_type": type_exists
+                                    "is_type": type_exists,
+                                    "edit_csv": new_process.pk,
                                     }), content_type="application/json")
 
 
