@@ -413,7 +413,7 @@ class Poc{
 
             this.continue_section("file-upload", "column-mapping");
 
-            let select_html = `<select class="js-example-basic-single api_headers new_header"></select>`;
+            let select_html = `<select class="js-example-basic-single api_headers new_header"><option value=""></option></select>`;
 
             $.each(csv_headers, function (i, val) {
 
@@ -426,7 +426,8 @@ class Poc{
             let headers_select = $('.api_headers');
 
             headers_select.select2({
-                width: '30%'
+                width: '30%',
+                placeholder: 'Select Header'
             });
 
             $.fn.populate = function () {
@@ -654,9 +655,13 @@ class Poc{
 
         let process_status = await this.query_process(process_id);
 
-        $('#validate-jexcel').toggle();
+        let validate_button = $('#validate-jexcel');
 
-        $('#validating_button').toggle();
+        validate_button.toggle();
+        
+        let validating_button = $('#validating_button');
+
+        validating_button.toggle();
 
         while(process_status['finished'] === false){
 
@@ -675,47 +680,63 @@ class Poc{
 
                     // await this.create_csv_with_errors(this.errors_mapping, file_upload, process_id);
 
-                    this.continue_section("editing-data", "data-validation");
-
-                    let revalidate_spinner = $('.se-pre-con-val');
-
-                    revalidate_spinner.css('display', 'block');
-
                     let results = await this.show_row_with_errors(this.errors_mapping, process_id, 'file');
 
-                    let data = results['data'];
+                    if (results.hasOwnProperty('undefined_headers')) {
 
-                    let style_dict = results['style_dict'];
+                        let undefined_length = "is";
 
-                    let errors_per_cell = results['errors_per_cell'];
+                        if (results['undefined_headers'].length > 1)
+                            undefined_length = "are";
 
-                    let set_table_width = $('#my_tests');
+                        this.alert_message(document.getElementById("error_editing_data"),
+                            `${results['undefined_headers'].join(', ')} ${undefined_length} not a valid headers`,
+                            "danger");
 
-                    var width = document.getElementById('breadcrumb').offsetWidth;
+                        validate_button.toggle();
 
-                    let data_length = data.length;
+                        validating_button.toggle();
 
-                    errors_cell = results['errors_per_cell'];
+                    } else {
 
-                    this.validation_table = jexcel(document.getElementById('my_tests'),{
-                        data: data,
-                        colHeaders: results['headers'],
-                        defaultColWidth: '200px',
-                        tableWidth: `${width}px`,
-                        tableOverflow:true,
-                        lazyLoading:true,
-                        loadingSpin:true,
-                        style: style_dict,
-                        onselection: this.selectionActive,
-                    });
+                         this.continue_section("editing-data", "data-validation");
 
-                    revalidate_spinner.toggle();
+                        let revalidate_spinner = $('.se-pre-con-val');
 
-                    let error_column = results['headers'].length - 1;
+                        revalidate_spinner.css('display', 'block');
 
-                    this.validation_table.setWidth(error_column, 1000);
+                        let data = results['data'];
 
-                    add_comments_to_cell(errors_per_cell, this.validation_table);
+                        let style_dict = results['style_dict'];
+
+                        let errors_per_cell = results['errors_per_cell'];
+
+                        var width = document.getElementById('breadcrumb').offsetWidth;
+
+                        errors_cell = results['errors_per_cell'];
+
+                        this.validation_table = jexcel(document.getElementById('my_tests'),{
+                            data: data,
+                            colHeaders: results['headers'],
+                            defaultColWidth: '200px',
+                            tableWidth: `${width}px`,
+                            tableOverflow:true,
+                            lazyLoading:true,
+                            loadingSpin:true,
+                            style: style_dict,
+                            onselection: this.selectionActive,
+                        });
+
+                        revalidate_spinner.toggle();
+
+                        let error_column = results['headers'].length - 1;
+
+                        this.validation_table.setWidth(error_column, 1000);
+
+                        add_comments_to_cell(errors_per_cell, this.validation_table);
+                    }
+
+
 
                 } else {
 
@@ -740,6 +761,10 @@ class Poc{
             }
 
         }else {
+
+            this.alert_message(document.getElementById("error_editing_data"),
+                `Something went wrong, please try again`,
+                "danger");
 
             console.log("INTERRUPTED");
 
@@ -1178,7 +1203,65 @@ document.getElementById('change-header').addEventListener('click', function (e) 
 
     let my_file = get_file('file_csv');
 
-    Poc_functions.change_csv_headers_and_editing_data(my_file);
+    let header_set = [];
+
+    let duplicates = [];
+
+    let empty_elements = [];
+
+
+    $( ".new_header" ).each(function() {
+
+        let value = $(this).find('option:selected').text();
+
+        if (!value) {
+
+            duplicates = [];
+
+            duplicates.push('');
+
+            empty_elements.push($(this));
+
+        }
+
+        let is_in_list = $.inArray(value, header_set);
+
+        if (is_in_list === -1){
+
+            header_set.push(value);
+
+        }else{
+
+            duplicates.push(value);
+
+        }
+
+    });
+
+    if (duplicates.includes("")){
+
+        Poc_functions.alert_message(document.getElementById("mapping_errors_alert"),
+                `You have to select an option`,
+                "danger");
+
+        $(empty_elements).each(function() {
+
+            $(this).siblings(".select2-container").css({'border': '1px solid #dc3545', 'border-radius': '4px'});
+
+        });
+
+
+    } else if (duplicates.length > 0){
+
+        Poc_functions.alert_message(document.getElementById("mapping_errors_alert"),
+            `Please check your options, it seems you repeated these: ${duplicates.join(', ')}`,
+            "danger")
+
+    } else{
+
+        Poc_functions.change_csv_headers_and_editing_data(my_file);
+
+    }
 
 
 });
@@ -1342,8 +1425,6 @@ function get_file(input_id) {
 
 }
 
-$('.js-example-basic-single').select2();
-
 function add_comments_to_cell(errors_per_cell, table) {
     
     let entries = Object.entries(errors_per_cell);
@@ -1355,3 +1436,26 @@ function add_comments_to_cell(errors_per_cell, table) {
     
     
 }
+
+let previous;
+
+$(document).on('select2:open', '.new_header', function (e) {
+    // Store the current value on focus and on change
+    previous = this.value;
+
+});
+
+$(document).on('change', '.new_header',function() {
+    if (previous) {
+
+        $(".js-example-basic-single option[value=" + previous + "]").removeAttr('disabled');
+
+    }
+
+	let actual = this.value;
+
+    $(".js-example-basic-single option[value=" + actual + "]").attr('disabled', 'disabled');
+
+    $(this).siblings(".select2-container").css({'border': ''});
+
+});

@@ -218,6 +218,12 @@ def show_row_with_errors(request):
 
     headers = csv_file.columns.tolist()
 
+    review = review_headers(headers)
+
+    if review:
+
+        return HttpResponse(json.dumps({"undefined_headers": review}))
+
     try:
 
         get_all_arrays = main_array(sorted(errors, key=lambda i: i['line']), headers)
@@ -371,3 +377,18 @@ def main_array(errors, headers):
             'style_dict': extract_line_fields,
             'errors_per_cell': list_errors_per_cell
             }
+
+
+def review_headers(headers):
+
+    if all(elem in api_headers for elem in headers):
+
+        return []
+
+    not_in_api = []
+
+    for elem in headers:
+        if elem not in api_headers and elem != 'Line' and elem != "Errors":
+            not_in_api += elem
+
+    return not_in_api
