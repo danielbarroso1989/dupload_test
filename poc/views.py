@@ -10,16 +10,10 @@ import sys
 
 import numpy as np
 
-from poc.choices import ENVIRONMENTS
+from poc.choices import ENVIRONMENTS, API_HEADERS, ALPHABET
 
-
-ALPHABET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
-            'V', 'W', 'X', 'Y', 'Z']
 
 url_environment = {"sbx": "https://edna.identitymind.com/im/admin/jax/merchant/"}
-
-api_headers = ['type', 'man', 'dob', 'tea', 'dfp', 'dft', 'phn', 'profile', 'bln', 'bfn', 'bsn', 'bco', 'bz',
-               'bc', 'memo', 'ip', 'assn', 'amt', 'dman', 'ac', 'as', 'amn', 'az', 'aco', 'asn']
 
 
 def index(request):
@@ -89,7 +83,7 @@ def get_headers(request):
 
     headers = list(csv_input)
 
-    if all(elem in api_headers for elem in headers):
+    if all(elem in API_HEADERS for elem in headers):
 
         return HttpResponse(json.dumps({"status": 'ok'}), content_type="application/json")
 
@@ -268,6 +262,11 @@ def validate_changes(request):
 
     headers = headers.split(',')
 
+    review = review_headers(headers)
+
+    if review:
+        return HttpResponse(json.dumps({"undefined_headers": review}))
+
     data_frame = pd.DataFrame(data)
 
     data_frame.columns = headers
@@ -375,14 +374,14 @@ def main_array(errors, headers):
 
 def review_headers(headers):
 
-    if all(elem in api_headers for elem in headers):
+    if all(elem in API_HEADERS for elem in headers):
 
         return []
 
     not_in_api = []
 
     for elem in headers:
-        if elem not in api_headers and elem != 'Line' and elem != "Errors":
+        if elem not in API_HEADERS and elem != 'Line' and elem != "Errors":
             not_in_api += elem
 
     return not_in_api

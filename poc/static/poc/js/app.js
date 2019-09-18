@@ -34,9 +34,10 @@ class Poc{
 
     constructor(){
 
-        this._api_key= undefined;
+        this._api_key = undefined;
         this._api_user = undefined;
         this._environment = undefined;
+        this._job_name = undefined;
         this._csv_file = undefined;
         this.errors_mapping = undefined;
         this.processId  = undefined;
@@ -54,15 +55,17 @@ class Poc{
 
     async submit_account_setup() {
 
-        let api_key = document.getElementById("api_key").value;
+        this._api_key = document.getElementById("api_key").value;
 
-        let api_user = document.getElementById("api_user").value;
+        this._api_user = document.getElementById("api_user").value;
 
-        let environment = document.getElementById("environment_select").value;
+        this._environment = document.getElementById("environment_select").value;
 
-        let job_name = document.getElementById("job_name").value;
+        this._job_name = document.getElementById("job_name").value;
 
-        if (api_key && api_user && environment) {
+        console.log("api user", this._api_user)
+
+        if (this._api_key && this._api_user && this._environment && this._job_name) {
 
             // let result_validate_credentials = await this.validate_credentials(api_user, api_key, environment);
 
@@ -70,10 +73,6 @@ class Poc{
 
             // if (result_validate_credentials['code'] === 200) {
             if (result_validate_credentials) {
-
-                this._api_key = api_key;
-
-                this._api_user = api_user;
 
                 this.continue_section("account-setup", "file-upload");
 
@@ -344,9 +343,11 @@ class Poc{
     
                     this.continue_section(active, "submit-correct-data");
     
-                    // this.alert_message(document.getElementById("submit-data-errors"),
-                    // 'File Without Errors!', 'success')
-    
+                    let summary = `<h6 class="card-subtitle my-2 text-muted"><b>Job Name: ${this._job_name}</b></h6><br>` +
+                        `<h6 class="card-subtitle my-2 text-muted"><b>Api User: ${this._api_user}</b></h6><br>` +
+                        `<h6 class="card-subtitle my-2 text-muted"><b>Environment: ${this._environment}</b></h6><br>`;
+
+                    $('#summary').append(summary);
                 }
             } catch (e) {
 
@@ -467,6 +468,8 @@ class Poc{
                 loadingSpin:true,
             });
 
+            $('div#edit_data table').addClass('edit_table');
+
             this.editing_table.setHeight(0, 25);
 
             if (!is_type){
@@ -582,8 +585,11 @@ class Poc{
                 tableOverflow:true,
                 lazyLoading:true,
                 loadingSpin:true,
-                onselection: this.selectionActive,
+                // onchange: this.changed,
+                // onselection: this.selectionActive,
             });
+
+        $('div#edit_data table').addClass('edit_table');
         
         if (!is_type){
 
@@ -684,13 +690,13 @@ class Poc{
 
                     if (results.hasOwnProperty('undefined_headers')) {
 
-                        let undefined_length = "is";
+                        let undefined_length = "is not a valid header";
 
                         if (results['undefined_headers'].length > 1)
-                            undefined_length = "are";
+                            undefined_length = "are not valid headers";
 
                         this.alert_message(document.getElementById("error_editing_data"),
-                            `${results['undefined_headers'].join(', ')} ${undefined_length} not a valid headers`,
+                            `${results['undefined_headers'].join(', ')} ${undefined_length}`,
                             "danger");
 
                         validate_button.toggle();
@@ -699,7 +705,7 @@ class Poc{
 
                     } else {
 
-                         this.continue_section("editing-data", "data-validation");
+                        this.continue_section("editing-data", "data-validation");
 
                         let revalidate_spinner = $('.se-pre-con-val');
 
@@ -724,8 +730,11 @@ class Poc{
                             lazyLoading:true,
                             loadingSpin:true,
                             style: style_dict,
+                            onchange: this.changed,
                             onselection: this.selectionActive,
                         });
+
+                        $('div#my_tests table').addClass('validation_table');
 
                         revalidate_spinner.toggle();
 
@@ -733,7 +742,7 @@ class Poc{
 
                         this.validation_table.setWidth(error_column, 1000);
 
-                        add_comments_to_cell(errors_per_cell, this.validation_table);
+                        // add_comments_to_cell(errors_per_cell, this.validation_table);
                     }
 
 
@@ -746,12 +755,22 @@ class Poc{
 
                         active = 'file-upload';
 
-                    } else {
+                    }else if(active === 'menu-editing-data'){
+
+                        active = 'editing-data';
+                    }
+                    else {
 
                         active = 'column-mapping';
                     }
 
                     this.continue_section(active, "submit-correct-data");
+
+                    let summary = `<h6 class="card-subtitle my-2 text-muted"><b>Job Name: ${this._job_name}</b></h6><br>` +
+                        `<h6 class="card-subtitle my-2 text-muted"><b>Api User: ${this._api_user}</b></h6><br>` +
+                        `<h6 class="card-subtitle my-2 text-muted"><b>Environment: ${this._environment}</b></h6><br>`;
+
+                    $('#summary').append(summary);
 
                 }
             } catch (e) {
@@ -772,7 +791,11 @@ class Poc{
 
     }
 
-    async revalidate_document(){
+    async revalidate_document() {
+
+        let error_data_validation = $('#error_data_validation');
+
+        error_data_validation.css('display', 'none');
 
         let re_validate_button = $('#re-validating-spin');
 
@@ -784,106 +807,135 @@ class Poc{
 
         let results = await this.validate_changes();
 
-        let process_id = results['process_id'];
+        if (results.hasOwnProperty('undefined_headers')) {
 
-        let process_status = await this.query_process(process_id);
+            console.log("undefined", results['undefined_headers'])
 
-        while(process_status['finished'] === false){
+            let undefined_length = "is";
 
-            await this.sleep(500);
+            if (results['undefined_headers'].length > 1)
 
-            process_status = await this.query_process(process_id);
-        }
+                undefined_length = "are";
 
-        if(process_status['interrupted'] === false){
+            this.alert_message(document.getElementById("error_data_validation"),
+                `${results['undefined_headers'].join(', ')} ${undefined_length} not a valid headers`,
+                "danger");
 
-            try {
+            error_data_validation.css('display', 'block');
 
-                this.errors_mapping = await this.get_validate_results(process_id);
+            re_validate_button.toggle();
 
-                if (this.errors_mapping.length > 0){
+            validate_button.toggle();
 
-                    // await this.create_csv_with_errors(this.errors_mapping, file_upload, process_id);
+        } else {
 
-                    let results = await this.show_row_with_errors(this.errors_mapping, process_id, 'file');
+            let process_id = results['process_id'];
 
-                    this.continue_section("editing-data", "data-validation");
+            let process_status = await this.query_process(process_id);
 
-                    let data = results['data'];
+            while (process_status['finished'] === false) {
 
-                    let style_dict = results['style_dict'];
+                await this.sleep(500);
 
-                    let errors_per_cell = results['errors_per_cell'];
+                process_status = await this.query_process(process_id);
+            }
 
-                    errors_cell = results['errors_per_cell'];
+            if (process_status['interrupted'] === false) {
 
-                    let table = $( "#my_tests" );
+                try {
 
-                    table.remove();
+                    this.errors_mapping = await this.get_validate_results(process_id);
 
-                    let div = document.createElement('div');
+                    if (this.errors_mapping.length > 0) {
 
-                    div.id = 'my_tests';
+                        // await this.create_csv_with_errors(this.errors_mapping, file_upload, process_id);
 
-                    document.getElementById('jexcel').appendChild(div);
+                        let results = await this.show_row_with_errors(this.errors_mapping, process_id, 'file');
 
-                    var width = document.getElementById('breadcrumb').offsetWidth;
+                        this.continue_section("editing-data", "data-validation");
 
-                    this.validation_table = jexcel(document.getElementById("my_tests"),{
-                        data: data,
-                        colHeaders: results['headers'],
-                        defaultColWidth: '200px',
-                        tableWidth: `${width}px`,
-                        tableOverflow:true,
-                        lazyLoading:true,
-                        loadingSpin:true,
-                        style: style_dict,
-                        onselection: this.selectionActive,
-                    });
+                        let data = results['data'];
 
-                    re_validate_button.toggle();
+                        let style_dict = results['style_dict'];
 
-                    validate_button.toggle();
+                        let errors_per_cell = results['errors_per_cell'];
 
-                    let error_column = results['headers'].length - 1;
+                        errors_cell = results['errors_per_cell'];
 
-                    this.validation_table.setWidth(error_column, 1000);
+                        let table = $("#my_tests");
 
-                    add_comments_to_cell(errors_per_cell, this.validation_table);
+                        table.remove();
 
-                } else {
+                        let div = document.createElement('div');
 
-                    let active = $("#breadcrumb li.active").attr('id');
+                        div.id = 'my_tests';
 
-                    if (active === 'menu-file-upload') {
+                        document.getElementById('jexcel').appendChild(div);
 
-                        active = 'file-upload';
+                        var width = document.getElementById('breadcrumb').offsetWidth;
 
-                    }else if('menu-data-validation'){
+                        this.validation_table = jexcel(document.getElementById("my_tests"), {
+                            data: data,
+                            colHeaders: results['headers'],
+                            defaultColWidth: '200px',
+                            tableWidth: `${width}px`,
+                            tableOverflow: true,
+                            lazyLoading: true,
+                            loadingSpin: true,
+                            style: style_dict,
+                            onchange: this.changed,
+                            onselection: this.selectionActive,
+                        });
 
-                        active = 'data-validation'
+                        $('div#my_tests table').addClass('validation_table');
+
+                        re_validate_button.toggle();
+
+                        validate_button.toggle();
+
+                        let error_column = results['headers'].length - 1;
+
+                        this.validation_table.setWidth(error_column, 1000);
+
+                        // add_comments_to_cell(errors_per_cell, this.validation_table);
 
                     } else {
 
-                        active = 'column-mapping';
+                        let active = $("#breadcrumb li.active").attr('id');
+
+                        if (active === 'menu-file-upload') {
+
+                            active = 'file-upload';
+
+                        } else if ('menu-data-validation') {
+
+                            active = 'data-validation'
+
+                        } else {
+
+                            active = 'column-mapping';
+                        }
+
+                        this.continue_section(active, "submit-correct-data");
+
+                        let summary = `<h6 class="card-subtitle my-2 text-muted"><b>Job Name: ${this._job_name}</b></h6><br>` +
+                        `<h6 class="card-subtitle my-2 text-muted"><b>Api User: ${this._api_user}</b></h6><br>` +
+                        `<h6 class="card-subtitle my-2 text-muted"><b>Environment: ${this._environment}</b></h6><br>`;
+
+                        $('#summary').append(summary);
+
                     }
+                } catch (e) {
 
-                    this.continue_section(active, "submit-correct-data");
-
-                    // this.alert_message(document.getElementById("submit-data-errors"),
-                    // 'File Without Errors!', 'success')
+                    console.error(e);
 
                 }
-            } catch (e) {
 
-                console.error(e);
+            } else {
+
+                console.log("INTERRUPTED");
 
             }
-
-        }else {
-
-            console.log("INTERRUPTED");
-
         }
     }
 
@@ -1114,6 +1166,31 @@ class Poc{
 
     };
 
+    changed(instance, cell, x, y, value) {
+
+        let entries = Object.entries(errors_cell);
+
+        let cellName = jexcel.getColumnNameFromId([x,y]);
+
+        for (const [key, value] of entries){
+
+            if (cellName === key){
+
+                $('#log').css('display', 'none');
+
+                delete errors_cell[key];
+
+                break;
+
+            } else {
+
+                $('#log').css('display', 'none');
+
+            }
+        }
+
+    }
+
     alert_message(id_to_append, text, classes){
 
         id_to_append.innerHTML = `<div id="error-text" class="alert alert-${classes} text-center id" role="alert">${text}</div>`;
@@ -1176,6 +1253,22 @@ class Poc{
 const Poc_functions = new Poc();
 
 //Dom events
+
+document.getElementById('new_upload').addEventListener('click', function (e) {
+
+    Poc_functions.continue_section('process-table', 'account-setup');
+
+
+});
+
+document.getElementById('schedule-job').addEventListener('click', function (e) {
+
+    window.location.reload()
+
+    // Poc_functions.continue_section('submit-correct-data', 'process-table');
+
+
+});
 
 document.getElementById('submit-account-setup').addEventListener('click', function (e) {
 
@@ -1268,13 +1361,56 @@ document.getElementById('change-header').addEventListener('click', function (e) 
 
 document.getElementById('validate-jexcel').addEventListener('click', function (e) {
 
-    Poc_functions.init_process();
+    let duplicates = verify_duplicate_headers('edit_table');
+
+
+    if (duplicates.length > 0 && duplicates.length < 2){
+
+        Poc_functions.alert_message(document.getElementById("error_editing_data"),
+            `Header columns must be unique, it seems you repeated this: ${duplicates.join(', ')}`,
+            "danger");
+
+        console.log(`duplicados ${duplicates.join(', ')}`)
+
+    } else if(duplicates.length > 1){
+
+        Poc_functions.alert_message(document.getElementById("error_editing_data"),
+            `Headers must be unique, it seems you repeated these: ${duplicates.join(', ')}`,
+            "danger");
+
+    } else {
+
+        Poc_functions.init_process();
+    }
 
 });
 
 document.getElementById('validate-changes').addEventListener('click', function (e) {
 
-    Poc_functions.revalidate_document();
+    let duplicates = verify_duplicate_headers('validation_table');
+
+    if (duplicates.length > 0 && duplicates.length < 2){
+
+        Poc_functions.alert_message(document.getElementById("error_data_validation"),
+            `Header columns must be unique, it seems you repeated this: ${duplicates.join(', ')}`,
+            "danger");
+
+        console.log(`duplicados ${duplicates.join(', ')}`);
+
+        $('#error_data_validation').css('display', 'block');
+
+    } else if(duplicates.length > 1){
+
+        Poc_functions.alert_message(document.getElementById("error_data_validation"),
+            `Headers must be unique, it seems you repeated these: ${duplicates.join(', ')}`,
+            "danger");
+
+        $('#error_data_validation').css('display', 'block');
+
+    } else {
+
+        Poc_functions.revalidate_document();
+    }
 
 });
 
@@ -1292,23 +1428,23 @@ document.getElementById('validate-changes').addEventListener('click', function (
 //
 // });
 
-document.getElementById('submit-data').addEventListener('click', function () {
-
-    let myFile;
-
-    if (document.getElementById('reload_file_csv').files[0]) {
-
-        myFile = document.getElementById('reload_file_csv').files[0];
-
-    } else {
-
-        myFile = document.getElementById('file_csv').files[0];
-
-    }
-
-    Poc_functions.SubmitData(myFile);
-
-});
+// document.getElementById('submit-data').addEventListener('click', function () {
+//
+//     let myFile;
+//
+//     if (document.getElementById('reload_file_csv').files[0]) {
+//
+//         myFile = document.getElementById('reload_file_csv').files[0];
+//
+//     } else {
+//
+//         myFile = document.getElementById('file_csv').files[0];
+//
+//     }
+//
+//     Poc_functions.SubmitData(myFile);
+//
+// });
 
 function select_file_alert(input_id){
 
@@ -1459,3 +1595,36 @@ $(document).on('change', '.new_header',function() {
     $(this).siblings(".select2-container").css({'border': ''});
 
 });
+
+
+function verify_duplicate_headers(table) {
+
+    let duplicates = [];
+
+    let headers = [];
+
+    $("table." + table + " thead tr td").each(function(){
+
+        let value = $(this).text();
+
+        let is_in_list = $.inArray(value, headers);
+
+        if (is_in_list === -1){
+
+            headers.push(value);
+
+        }else{
+
+            duplicates.push(value);
+
+        }
+    });
+
+    return duplicates
+
+}
+
+$(document).on("keyup",'table.validation_table tbody tr td', function(){
+    $(this).css('background', '')
+});
+
