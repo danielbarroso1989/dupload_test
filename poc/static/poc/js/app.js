@@ -4,9 +4,6 @@ const url2 = "http://localhost:8080/poc-forklift/process/";
 
 const url3 = "http://localhost:8080/poc-forklift/validate/results/";
 
-const api_headers = ['type', 'man', 'dob', 'tea', 'dfp', 'dft', 'phn', 'profile', 'bln', 'bfn', 'bsn', 'bco', 'bz',
-    'bc', 'memo', 'ip', 'assn', 'amt', 'dman', 'ac', 'as', 'amn', 'az', 'aco', 'asn'];
-
 var errors_cell;
 
 //AJAX config for using CSRF
@@ -44,6 +41,7 @@ class Poc{
         this.editing_table = undefined;
         this.validation_table = undefined;
         this.errors_per_cell = undefined;
+        this._process_id = undefined;
 
         this.sleep = (milliseconds) => {
           return new Promise(resolve => setTimeout(resolve, milliseconds))
@@ -456,6 +454,8 @@ class Poc{
 
             let is_type = result['is_type'];
 
+            this._process_id = result['process'];
+
             var width = document.getElementById('breadcrumb').offsetWidth;
 
             this.editing_table = jexcel(document.getElementById('edit_data'),{
@@ -500,7 +500,15 @@ class Poc{
 
             let form_data = new FormData();
 
-            form_data.append('csv_file', file);
+            form_data.append('path', file);
+
+            form_data.append('name', this._job_name);
+
+            form_data.append('api_user', this._api_user);
+
+            form_data.append('api_token', this._api_key);
+
+            form_data.append('environment', this._environment);
 
             let req = new Request(endpoint, {
                 method: 'POST',
@@ -519,6 +527,48 @@ class Poc{
                 });
 
         });
+    }
+
+    async update_document_to_ready_to_upload(process_id){
+
+         return new Promise(resolve => {
+
+             let data = this.editing_table.getData(false);
+
+             let headers = this.editing_table.getHeaders();
+
+             let request_headers = new Headers();
+
+             request_headers.append('Accept', 'application/json');
+
+             request_headers.append('X-CSRFToken', csrftoken);
+
+             let endpoint = 'http://localhost:8000/update_document_to_ready_to_upload/';
+
+             let form_data = new FormData();
+
+             form_data.append('process_id', JSON.stringify(this._process_id));
+
+             form_data.append('data', JSON.stringify(data));
+
+             form_data.append('headers', JSON.stringify(headers));
+
+             let req = new Request(endpoint, {
+                method: 'POST',
+                headers: request_headers,
+                body: form_data,
+            });
+
+            fetch(req)
+                .then((response) => {
+
+                    resolve(response.json());
+
+                })
+                .catch((err) => {
+                    console.log('ERROR:', err.message);
+                });
+         });
     }
 
     async get_headers(file){
@@ -561,6 +611,8 @@ class Poc{
 
         let result = await this.get_new_headers(file);
 
+        this._process_id = result['process'];
+
         this.continue_section("column-mapping", "editing-data");
 
         let headers = result['headers'];
@@ -568,12 +620,6 @@ class Poc{
         let data = result['data'];
 
         let is_type = result['is_type'];
-
-        let headers_length = headers.length;
-
-        console.log(is_type);
-
-        let table_id = $('#edit_data');
 
         var width = document.getElementById('breadcrumb').offsetWidth;
 
@@ -626,7 +672,15 @@ class Poc{
 
             let form_data = new FormData();
 
-            form_data.append('csv_file', file);
+            form_data.append('path', file);
+
+            form_data.append('name', this._job_name);
+
+            form_data.append('api_user', this._api_user);
+
+            form_data.append('api_token', this._api_key);
+
+            form_data.append('environment', this._environment);
 
             form_data.append('new_headers', JSON.stringify(headers_array));
 
@@ -686,7 +740,7 @@ class Poc{
 
                     // await this.create_csv_with_errors(this.errors_mapping, file_upload, process_id);
 
-                    let results = await this.show_row_with_errors(this.errors_mapping, process_id, 'file');
+                    let results = await this.show_row_with_errors(this.errors_mapping);
 
                     if (results.hasOwnProperty('undefined_headers')) {
 
@@ -749,6 +803,8 @@ class Poc{
 
                 } else {
 
+                    let update_document = await this.update_document_to_ready_to_upload(this._process_id);
+
                     let active = $("#breadcrumb li.active").attr('id');
 
                     if (active === 'menu-file-upload') {
@@ -808,8 +864,6 @@ class Poc{
         let results = await this.validate_changes();
 
         if (results.hasOwnProperty('undefined_headers')) {
-
-            console.log("undefined", results['undefined_headers'])
 
             let undefined_length = "is";
 
@@ -901,6 +955,8 @@ class Poc{
 
                     } else {
 
+                        let update_document = await this.update_document_to_ready_to_upload(this._process_id);
+
                         let active = $("#breadcrumb li.active").attr('id');
 
                         if (active === 'menu-file-upload') {
@@ -963,6 +1019,8 @@ class Poc{
 
             form_data.append('headers', JSON.stringify(headers));
 
+            form_data.append('process_id', JSON.stringify(this._process_id));
+
             let req = new Request(endpoint, {
                 method: 'POST',
                 headers: request_headers,
@@ -985,7 +1043,7 @@ class Poc{
 
     }
 
-    async show_row_with_errors(results, process_id, file){
+    async show_row_with_errors(results){
 
         return new Promise(resolve => {
 
@@ -999,11 +1057,9 @@ class Poc{
 
             let form_data = new FormData();
 
-            form_data.append('csv_file', file);
-
             form_data.append('errors', JSON.stringify(results));
 
-            form_data.append('process_id', process_id);
+            form_data.append('process_id', JSON.stringify(this._process_id));
 
             let req = new Request(endpoint, {
                 method: 'POST',
@@ -1047,6 +1103,8 @@ class Poc{
             form_data.append('data', JSON.stringify(data));
 
             form_data.append('headers', JSON.stringify(headers));
+
+            form_data.append('process_id', JSON.stringify(this._process_id));
 
             let req = new Request(endpoint, {
                 method: 'POST',
@@ -1277,7 +1335,9 @@ document.getElementById('submit-account-setup').addEventListener('click', functi
 
 });
 
-document.getElementById('get-headers-button').addEventListener('click', function (e) {
+document.getElementById('process_form').addEventListener('submit', function (e) {
+
+    e.preventDefault();
 
     let my_file = get_file('file_csv');
 

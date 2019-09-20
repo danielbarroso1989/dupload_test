@@ -14,4 +14,5 @@ urlpatterns = [
     path('get_process_id/', views.get_process_id, name='get_process_id'),
     path('show_row_with_errors/', views.show_row_with_errors, name='show_row_with_errors'),
     path('validate_changes/', views.validate_changes, name='validate_changes'),
+    path('update_document_to_ready_to_upload/', views.update_document_to_ready_to_upload, name='update_document_to_ready_to_upload'),
 ]

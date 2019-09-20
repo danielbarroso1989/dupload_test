@@ -9,14 +9,14 @@
             <div class="col-lg-4 d-flex justify-content-center align-items-center p-3">
                 <div class="input-group">
                     <div class="custom-file">
-                        <input type="file" class="custom-file-input" id="file_csv" aria-describedby="file_csv" name="file_csv" required>
+                        {{ file_form.path }}
                         <label class="custom-file-label" for="file_csv">Choose file</label>
                     </div>
 {#                    <div class="input-group-append pl-2">#}
 {#                        <button id="submit-file-upload" class="btn btn-primary" type="button">Validate</button>#}
 {#                    </div>#}
                     <div class="input-group-append pl-2">
-                        <button id="get-headers-button" class="btn btn-primary" type="button">Load</button>
+                        <button id="get-headers-button" class="btn btn-primary" type="submit">Load</button>
                     </div>
                 </div>
             </div>
@@ -24,3 +24,4 @@
     </div>
 </div>
 
+</form>
