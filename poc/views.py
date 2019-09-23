@@ -14,9 +14,6 @@ from poc.choices import ENVIRONMENTS, API_HEADERS, ALPHABET
 from poc.forms import ProcessForm, FileForm
 from poc.models import Status, Process, File
 from django.contrib.auth.models import User
-import boto3
-
-from mysite import settings
 
 
 url_environment = {"sbx": "https://edna.identitymind.com/im/admin/jax/merchant/"}
