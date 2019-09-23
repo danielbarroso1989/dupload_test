@@ -26,10 +26,12 @@ def index(request):
 
     process_form = ProcessForm()
     file_form = FileForm()
+    processes = Process.objects.all()
 
     return render(request, 'poc/home.html', {'ENVIRONMENTS': ENVIRONMENTS,
                                              'process_form': process_form,
                                              'file_form': file_form,
+                                             'processes': processes,
                                              }
                   )
 

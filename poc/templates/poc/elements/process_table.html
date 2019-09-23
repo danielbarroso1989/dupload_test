@@ -37,69 +37,40 @@
 
                     </thead>
                     <tbody>
+                    {% for process in processes %}
+                        <tr>
 
-                    <tr>
+                        {% if process.id_status.pk != 1 %}
 
-                        <th scope="row">1</th>
+                            <th scope="row">{{ forloop.counter }}</th>
 
-                        <td>Ferratum POC</td>
+                            <td>{{ process.name }}</td>
 
-                        <td>ferratum</td>
+                            <td>{{ process.api_user }}</td>
 
-                        <td>amldemo</td>
+                            <td>{{ process.environment }}</td>
 
-                        <td>Done</td>
+                            {% if process.id_status.pk == 2 %}
+                                <td>In queue</td>
+                                <td></td>
+                            {% elif process.id_status.pk == 3 %}
+                                <td>Running</td>
+                                <td></td>
+                            {% elif process.id_status.pk == 4 %}
+                                <td>Done</td>
+                                <td><a href="./media/uploads/csv_ready_to_upload_{{ process.pk }}_validResult.csv">Results</a></td>
+                            {% elif process.id_status.pk == 5 %}
+                                <td>Interrupted</td>
+                                <td></td>
+                            {% elif process.id_status.pk == 6 %}
+                                <td>Error</td>
+                                <td></td>
+                            {% endif %}
 
-                        <td><a href="#">ferratum_poc.csv</a></td>
+                        {% endif %}
+                        </tr>
 
-                    </tr>
-
-                    <tr>
-
-                        <th scope="row">2</th>
-
-                        <td>Tipalti POC</td>
-
-                        <td>tipaltipoc</td>
-
-                        <td>staging</td>
-
-                        <td>Done</td>
-
-                        <td><a href="#">tipalti_poc.csv</a></td>
-
-                    </tr>
-
-                    <tr>
-
-                        <th scope="row">3</th>
-
-                        <td>Samuc POC</td>
-
-                        <td>samup</td>
-
-                        <td>amldemo</td>
-
-                        <td><a href="#">Error</a></td>
-                        <td></td>
-
-                    </tr>
-
-                    <tr>
-
-                        <th scope="row">4</th>
-
-                        <td>Paypal POC</td>
-
-                        <td>paypal</td>
-
-                        <td>sataging</td>
-
-                        <td>Done</td>
-
-                        <td><a href="#">paypal_poc.csv</a></td>
-
-                    </tr>
+                    {% endfor %}
 
                     </tbody>
                 </table>
