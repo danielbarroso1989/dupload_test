@@ -4,6 +4,10 @@ from __future__ import unicode_literals
 from django.db import models
 from django.contrib.auth.models import User
 from poc.choices import ENVIRONMENTS
+from django.core.files.storage import FileSystemStorage
+from mysite import settings
+
+private_storage = FileSystemStorage(location=settings.PRIVATE_STORAGE_ROOT)
 
 
 class Status(models.Model):
@@ -47,7 +51,7 @@ class Process(models.Model):
 
 
 class File(models.Model):
-    path = models.FileField(upload_to='uploads/', blank=True)
+    path = models.FileField(storage=private_storage, blank=True)
     filename = models.CharField(max_length=255, blank=True)
     num_column = models.IntegerField()
     id_process = models.ForeignKey(Process, on_delete=models.PROTECT)
