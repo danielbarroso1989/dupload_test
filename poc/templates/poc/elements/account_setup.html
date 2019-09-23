@@ -15,60 +15,35 @@
         </div>
     </div>
 </div>
-
+<form id="process_form" method="post" action="." enctype="multipart/form-data">
+    {% csrf_token %}
 <div class="py-5">
     <div class="container">
         <div class="row">
             <div class="col-md-8">
                 <div class="form-group row">
-                    <label class="col-2">API User</label>
+                    <label class="col-2">Job Name</label>
                     <div class="col-10">
-                        <input type="text"
-                               id="job_name"
-                               class="form-control"
-                               name="job_name"
-                               placeholder="Job Name"
-                               required
-                        >
+                        {{ process_form.name }}
                     </div>
                 </div>
 
                 <div class="form-group row">
                     <label class="col-2">Environment</label>
                     <div class="col-10">
-                        <select id="environment_select" class="custom-select" required>
-                            <option value="" selected="">Open this select menu</option>
-                            {% for env in ENVIRONMENTS %}
-
-                                <option value="{{ env.0 }}">{{ env.1 }}</option>
-
-                            {% endfor %}
-                        </select>
+                        {{ process_form.environment }}
                     </div>
                 </div>
                 <div class="form-group row">
                     <label class="col-2">API User</label>
                     <div class="col-10">
-                        <input type="text"
-                               id="api_user"
-                               class="form-control"
-                               name="api_user"
-                               placeholder="API USER"
-                               required
-                        >
+                        {{ process_form.api_user }}
                     </div>
                 </div>
                 <div class="form-group row">
                     <label for="api_key" class="col-2 col-form-label">API Key</label>
                     <div class="col-10">
-                        <input type="password"
-                               id="api_key"
-                               name="api_token"
-                               class="form-control"
-                               placeholder="API KEY"
-                               required
-                               style="opacity: 0.5;"
-                        >
+                        {{ process_form.api_token }}
                     </div>
                 </div>
                 <button id="submit-account-setup" class="btn btn-primary">Continue</button>

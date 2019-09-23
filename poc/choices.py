@@ -128,7 +128,7 @@ API_HEADERS = ['type',
                'memo4',
                'memo5',
                'memo6',
-               'memo7'
+               'memo7',
                'memo8',
                'memo9',
                'memo10',

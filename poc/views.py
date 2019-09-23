@@ -11,6 +11,12 @@ import sys
 import numpy as np
 
 from poc.choices import ENVIRONMENTS, API_HEADERS, ALPHABET
+from poc.forms import ProcessForm, FileForm
+from poc.models import Status, Process, File
+from django.contrib.auth.models import User
+import boto3
+
+from mysite import settings
 
 
 url_environment = {"sbx": "https://edna.identitymind.com/im/admin/jax/merchant/"}
@@ -18,7 +24,14 @@ url_environment = {"sbx": "https://edna.identitymind.com/im/admin/jax/merchant/"
 
 def index(request):
 
+    process_form = ProcessForm()
+    file_form = FileForm()
+    processes = Process.objects.all()
+
     return render(request, 'poc/home.html', {'ENVIRONMENTS': ENVIRONMENTS,
+                                             'process_form': process_form,
+                                             'file_form': file_form,
+                                             'processes': processes,
                                              }
                   )
 
@@ -53,7 +66,7 @@ def endpoint(request):
 
     except Exception as e:
 
-        print("Este es el error", e)
+        print("Error here", e)
 
 
 def basic_auth(request):
@@ -93,61 +106,130 @@ def get_headers(request):
 
 def show_correct_file_in_ui(request):
 
-    csv_file = request.FILES["csv_file"]
+    if request.method == 'POST':
 
-    csv_input = pd.read_csv(csv_file)
+        process_form = ProcessForm(request.POST or None)
 
-    csv_input.to_csv('./poc/static/csv/show_csv.csv', index=False)
+        file_form = FileForm(request.POST, request.FILES)
 
-    new_csv = pd.read_csv('./poc/static/csv/show_csv.csv')
+        initial_status = Status.objects.get(pk=1)
 
-    new_csv = new_csv.replace(np.nan, '', regex=True)
+        harcoded_user = User.objects.get(pk=1)
 
-    data_list = new_csv.values.tolist()
+        if process_form.is_valid() and file_form.is_valid():
 
-    data_headers = new_csv.columns.tolist()
+            new_process = process_form.save(commit=False)
 
-    type_exists = False
+            new_process.id_status = initial_status
 
-    if 'type' in data_headers:
-        type_exists = True
+            new_process.id_user = harcoded_user
 
-    return HttpResponse(json.dumps({"headers": data_headers,
-                                    "data": data_list,
-                                    "is_type": type_exists
-                                    }), content_type="application/json")
+            new_process.save()
+
+            new_csv = file_form.save(commit=False)
+
+            new_csv.filename = ''
+
+            new_csv.num_column = 0
+
+            new_csv.id_process = new_process
+
+            new_csv.save()
+
+            csv_input = pd.read_csv(new_csv.path)
+
+            csv_input = csv_input.replace(np.nan, '', regex=True)
+
+            data_list = csv_input.values.tolist()
+
+            data_headers = csv_input.columns.tolist()
+
+            new_csv.num_column = len(data_headers)
+
+            new_csv.save()
+
+            type_exists = False
+
+            if 'type' in data_headers:
+
+                type_exists = True
+
+            return HttpResponse(json.dumps({"headers": data_headers,
+                                            "data": data_list,
+                                            "is_type": type_exists,
+                                            "process": new_process.pk,
+                                            }), content_type="application/json")
+
+        else:
+            
+            print("process form errors", process_form.errors, "file form errors", file_form.errors)
+
+    return HttpResponse(json.dumps({"error": "nothing to show"}), content_type="application/json")
 
 
 def replace_headers(request):
 
-    csv_file = request.FILES["csv_file"]
+    if request.method == 'POST':
 
-    new_headers = request.POST["new_headers"]
+        process_form = ProcessForm(request.POST or None)
 
-    new_headers = json.loads(new_headers)
+        file_form = FileForm(request.POST, request.FILES)
 
-    csv_input = pd.read_csv(csv_file)
+        initial_status = Status.objects.get(pk=1)
 
-    csv_input.columns = new_headers
+        harcoded_user = User.objects.get(pk=1)
 
-    csv_input.to_csv('./poc/static/csv/new_headers.csv', index=False)
+        if process_form.is_valid() and file_form.is_valid():
 
-    new_csv = pd.read_csv('./poc/static/csv/new_headers.csv')
+            new_process = process_form.save(commit=False)
 
-    data_list = new_csv.values.tolist()
+            new_process.id_status = initial_status
 
-    data_headers = new_csv.columns.tolist()
+            new_process.id_user = harcoded_user
 
-    type_exists = False
+            new_process.save()
 
-    if 'type' in data_headers:
+            new_csv = file_form.save(commit=False)
 
-        type_exists = True
+            new_csv.filename = ''
 
-    return HttpResponse(json.dumps({"headers": data_headers,
-                                    "data": data_list,
-                                    "is_type": type_exists
-                                    }), content_type="application/json")
+            new_csv.id_process = new_process
+
+            new_csv.num_column = len(json.loads(request.POST["new_headers"]))
+
+            new_csv.save()
+
+            new_headers = request.POST["new_headers"]
+
+            new_headers = json.loads(new_headers)
+
+            csv_input = pd.read_csv(new_csv.path)
+
+            csv_input.columns = new_headers
+
+            data_list = csv_input.values.tolist()
+
+            data_headers = csv_input.columns.tolist()
+
+            new_csv.save()
+
+            type_exists = False
+
+            if 'type' in data_headers:
+
+                type_exists = True
+
+            return HttpResponse(json.dumps({"headers": data_headers,
+                                            "data": data_list,
+                                            "is_type": type_exists,
+                                            "process": new_process.pk,
+                                            }), content_type="application/json")
+
+        else:
+
+            print("process form errors", process_form.errors, "file form errors", file_form.errors)
+
+    return HttpResponse(json.dumps({"error": "nothing to show"}), content_type="application/json")
 
 
 def get_process_id(request):
@@ -156,15 +238,19 @@ def get_process_id(request):
 
     headers = json.loads(request.POST['headers'])
 
+    process_id = json.loads(request.POST['process_id'])
+
     headers = headers.split(',')
 
     data_frame = pd.DataFrame(data)
 
     data_frame.columns = headers
 
-    data_frame.to_csv('./poc/static/csv/get_process_id.csv', index=False)
+    name = 'get_process_id_' + str(process_id) + '.csv'
 
-    file = {'file': open('./poc/static/csv/get_process_id.csv', 'rb')}
+    update_document(process_id, data, headers, name)
+
+    file = {'file': open('./media/uploads/' + name, 'rb')}
 
     header_data = {
 
@@ -194,7 +280,9 @@ def show_row_with_errors(request):
 
     errors = json.loads(errors)
 
-    csv_file = pd.read_csv('./poc/static/csv/get_process_id.csv')
+    process_id = json.loads(request.POST['process_id'])
+
+    csv_file = pd.read_csv('./media/uploads/get_process_id_' + str(process_id) + '.csv')
 
     csv_file['Line'] = ''
 
@@ -235,7 +323,7 @@ def show_row_with_errors(request):
 
             csv_file_with_errors.append(csv_file.iloc[row[0] - 1, :])
 
-        csv_file.to_csv('./poc/static/csv/csv_errors.csv', index=False)
+        csv_file.to_csv('./media/uploads/csv_errors_' + str(process_id) + '.csv', index=False)
 
         data_frame_with_errors = pd.DataFrame(csv_file_with_errors).replace(np.nan, '', regex=True)
 
@@ -249,7 +337,7 @@ def show_row_with_errors(request):
 
     except Exception as e:
 
-        print("Este es el error", e)
+        print("This is the error", e)
 
     return HttpResponse(status=200)
 
@@ -259,6 +347,8 @@ def validate_changes(request):
     data = json.loads(request.POST['data'])
 
     headers = json.loads(request.POST['headers'])
+
+    process_id = json.loads(request.POST['process_id'])
 
     headers = headers.split(',')
 
@@ -271,7 +361,7 @@ def validate_changes(request):
 
     data_frame.columns = headers
 
-    csv = pd.read_csv('./poc/static/csv/get_process_id.csv')
+    csv = pd.read_csv('./media/uploads/get_process_id_' + str(process_id) + '.csv')
 
     csv = csv.replace(np.nan, '', regex=True)
 
@@ -285,9 +375,9 @@ def validate_changes(request):
 
                 csv.at[line, h] = row[h]
 
-    csv.to_csv('./poc/static/csv/get_process_id.csv', index=False)
+    csv.to_csv('./media/uploads/get_process_id_' + str(process_id) + '.csv', index=False)
 
-    file = {'file': open('./poc/static/csv/get_process_id.csv', 'rb')}
+    file = {'file': open('./media/uploads/get_process_id_' + str(process_id) + '.csv', 'rb')}
 
     header_data = {
 
@@ -385,3 +475,67 @@ def review_headers(headers):
             not_in_api += elem
 
     return not_in_api
+
+
+def update_document(process_id, data, headers, file_name, status=None):
+
+    """Update process and file path."""
+
+    try:
+        process_id = process_id
+
+        update_process = Process.objects.get(pk=process_id)
+
+        update_file = File.objects.get(id_process=update_process)
+
+        data_frame = pd.DataFrame(data)
+
+        data_frame.columns = headers
+
+        data_frame.to_csv('./media/uploads/' + file_name, index=False)
+
+        if status:
+
+            status_ready = Status.objects.get(pk=2)
+
+            update_process.id_status = status_ready
+
+            update_process.save()
+
+        update_file.path = '/uploads/' + file_name
+
+        update_file.save()
+
+        return HttpResponse(json.dumps({"done": 'done'}), content_type="application/json")
+
+    except Exception as e:
+
+        return HttpResponse(json.dumps({"error": e}), content_type="application/json")
+
+
+def update_document_to_ready_to_upload(request):
+
+    data = json.loads(request.POST['data'])
+
+    headers = json.loads(request.POST['headers'])
+
+    process_id = json.loads(request.POST['process_id'])
+
+    headers = headers.split(',')
+
+    file_name = 'csv_ready_to_upload_' + str(process_id) + '.csv'
+
+    result = update_document(process_id, data, headers, file_name, 2)
+
+    try:
+
+        r = requests.post('http://localhost:8080/poc-forklift/process/')
+
+        content = r.json()
+
+    except requests.exceptions.RequestException as e:
+        # catastrophic error. bail.
+        print("error", e)
+        sys.exit(1)
+
+    return result
