@@ -1687,3 +1687,10 @@ function verify_duplicate_headers(table) {
 $(document).on("keyup",'table.validation_table tbody tr td', function(){
     $(this).css('background', '')
 });
+
+
+window.onbeforeunload = e => {
+
+return true
+
+};
