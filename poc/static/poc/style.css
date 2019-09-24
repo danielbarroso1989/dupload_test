@@ -148,6 +148,10 @@ a:not([href]):not([tabindex]) {
   a:not([href]):not([tabindex]):focus {
     outline: 0; }
 
+a.active{
+  color: #6c757d !important;
+}
+
 pre,
 code,
 kbd,
@@ -3436,7 +3440,7 @@ input[type="button"].btn-block {
   text-decoration: none; }
 
 .breadcrumb-item.active {
-  color: #6c757d; }
+  color: #6c757d !important; }
 
 .pagination {
   display: flex;

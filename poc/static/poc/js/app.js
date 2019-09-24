@@ -1279,6 +1279,12 @@ class Poc{
 
         this.add_class(menu_next_section,'active');
 
+
+        $(`#menu-${next_section} a`).addClass('active');
+
+        $(`#menu-${section} a`).removeClass('active');
+
+
     }
 
     add_class(element,name_class){
@@ -1694,3 +1700,25 @@ window.onbeforeunload = e => {
 return true
 
 };
+
+$("#breadcrumb li a").on('click', function () {
+
+    let tag_a_clicked = $(this).attr('id');
+
+    let tag_a_active = $("#breadcrumb li.active a").attr('id');
+
+    let li_active = $("#breadcrumb li.active").attr('id');
+
+    let li_clicked = $(this).parent().attr('id');
+
+    li_clicked = li_clicked.replace("menu-", "");
+
+    li_active = li_active.replace("menu-", "");
+
+    if (tag_a_clicked < tag_a_active){
+
+        Poc_functions.continue_section(li_active, li_clicked);
+
+    }
+
+});
