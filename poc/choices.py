@@ -6,6 +6,16 @@ ENVIRONMENTS = (
 
 )
 
+STEPS = (
+    ('process-table', 'Process Table'),
+    ('account-setup', 'Account Setup'),
+    ('file-upload', 'File Upload'),
+    ('column-mapping', 'Column Mapping'),
+    ('editing-data', 'Editing Data'),
+    ('data-validation', 'Data Validation'),
+    ('submit-correct-data', 'Schedule Job')
+)
+
 API_HEADERS = [
     'Transaction Type',
     'Account Name',
