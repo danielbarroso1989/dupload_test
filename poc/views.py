@@ -147,7 +147,7 @@ def show_correct_file_in_ui(request):
 
             type_exists = False
 
-            if 'type' in data_headers:
+            if 'Transaction Type' in data_headers:
 
                 type_exists = True
 
@@ -212,7 +212,7 @@ def replace_headers(request):
 
             type_exists = False
 
-            if 'type' in data_headers:
+            if 'Transaction Type' in data_headers:
 
                 type_exists = True
 
@@ -468,8 +468,10 @@ def review_headers(headers):
     not_in_api = []
 
     for elem in headers:
+
         if elem not in API_HEADERS and elem != 'Line' and elem != "Errors":
-            not_in_api += elem
+
+            not_in_api.append(elem)
 
     return not_in_api
 
