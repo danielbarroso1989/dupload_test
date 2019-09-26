@@ -433,10 +433,13 @@ class Poc{
 
                 let $this = $(this);
 
-                $.each(api_headers, function (i, val) {
+                api_headers.forEach((element, index, array) => {
 
-                    $this.append(`<option value="${val}">${val}</option>`);
+                    for (const [key, value] of Object.entries(element)) {
 
+                      $this.append(`<option value="${value}">${value}</option>`);
+
+                    }
                 });
             };
 
@@ -1430,8 +1433,6 @@ document.getElementById('validate-jexcel').addEventListener('click', function (e
             `Header columns must be unique, it seems you repeated this: ${duplicates.join(', ')}`,
             "danger");
 
-        console.log(`duplicados ${duplicates.join(', ')}`)
-
     } else if(duplicates.length > 1){
 
         Poc_functions.alert_message(document.getElementById("error_editing_data"),
@@ -1644,13 +1645,13 @@ $(document).on('select2:open', '.new_header', function (e) {
 $(document).on('change', '.new_header',function() {
     if (previous) {
 
-        $(".js-example-basic-single option[value=" + previous + "]").removeAttr('disabled');
+        $(".js-example-basic-single option[value=" +"'" +  previous + "'" + "]").removeAttr('disabled');
 
     }
 
 	let actual = this.value;
 
-    $(".js-example-basic-single option[value=" + actual + "]").attr('disabled', 'disabled');
+    $(".js-example-basic-single option[value=" +"'" + actual + "'" + "]").attr('disabled', 'disabled');
 
     $(this).siblings(".select2-container").css({'border': ''});
 
