@@ -87,7 +87,7 @@ class File(models.Model):
 
     def __str__(self):
 
-        return self.filename
+        return self.filename_original
 
     class Meta:
 
