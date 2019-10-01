@@ -236,6 +236,8 @@ def replace_headers(request):
 
 def get_process_id(request):
 
+    # is used
+
     data = json.loads(request.POST['data'])
 
     headers = json.loads(request.POST['headers'])
@@ -250,9 +252,15 @@ def get_process_id(request):
 
     name = 'get_process_id_' + str(process_id) + '.csv'
 
-    update_document(process_id, data, headers, name)
+    file = File.objects.get(id_process=Process.objects.get(pk=process_id))
 
-    file = {'file': open('./media/uploads/' + name, 'rb')}
+    data_frame.to_csv(os.environ['HOME'] + '/Documents/myfiles/' + name, index=False)
+
+    file.path = os.environ['HOME'] + '/Documents/myfiles/' + name
+
+    file.save()
+
+    file = {'file': open(os.environ['HOME'] + '/Documents/myfiles/' + name, 'rb')}
 
     header_data = {
 
@@ -284,7 +292,11 @@ def show_row_with_errors(request):
 
     process_id = json.loads(request.POST['process_id'])
 
-    csv_file = pd.read_csv('./media/uploads/get_process_id_' + str(process_id) + '.csv')
+    process = Process.objects.get(pk=process_id)
+
+    file = File.objects.get(id_process=process)
+
+    csv_file = pd.read_csv(file.path)
 
     csv_file['Line'] = ''
 
@@ -325,7 +337,18 @@ def show_row_with_errors(request):
 
             csv_file_with_errors.append(csv_file.iloc[row[0] - 1, :])
 
-        csv_file.to_csv('./media/uploads/csv_errors_' + str(process_id) + '.csv', index=False)
+        csv_file.to_csv(os.environ['HOME'] + '/Documents/myfiles/' + 'validating_file_' + str(process.pk) + '.csv',
+                        index=False)
+
+        file.path = 'validating_file_' + str(process.pk) + '.csv'
+
+        file.filename_validated = 'validating_file_' + str(process.pk)
+
+        file.save()
+
+        process.id_step = ProcessStep.objects.get(step='data-validation')
+
+        process.save()
 
         data_frame_with_errors = pd.DataFrame(csv_file_with_errors).replace(np.nan, '', regex=True)
 
@@ -498,7 +521,7 @@ def update_document(process_id, data, headers, file_name, status=None):
 
         data_frame.columns = headers
 
-        data_frame.to_csv('./media/uploads/' + file_name, index=False)
+        data_frame.to_csv(os.environ['HOME'] + '/Documents/myfiles/' + file_name, index=False)
 
         if status:
 
