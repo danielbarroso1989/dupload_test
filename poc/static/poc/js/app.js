@@ -1306,6 +1306,12 @@ class Poc{
 
         this._process_id = result['process_id'];
 
+        this._job_name = result['job_name'];
+
+        this._api_user = result['api_user'];
+
+        this._environment = result['environment'];
+
         this.continue_section('process-table', step);
 
         if (step === 'column-mapping'){
@@ -1359,6 +1365,13 @@ class Poc{
 
             $('.se-pre-con').css('display', 'none');
 
+        } else if (step === 'submit-correct-data'){
+
+            let summary = `<h6 class="card-subtitle my-2 text-muted"><b>Job Name: ${this._job_name}</b></h6><br>` +
+                `<h6 class="card-subtitle my-2 text-muted"><b>Api User: ${this._api_user}</b></h6><br>` +
+                `<h6 class="card-subtitle my-2 text-muted"><b>Environment: ${this._environment}</b></h6><br>`;
+
+            $('#summary').append(summary);
         }
 
     }

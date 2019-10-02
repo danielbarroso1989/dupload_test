@@ -386,7 +386,7 @@ def validate_changes(request):
 
     data_frame.columns = headers
 
-    csv = pd.read_csv('./media/uploads/get_process_id_' + str(process_id) + '.csv')
+    csv = pd.read_csv(os.environ['HOME'] + '/Documents/myfiles/get_process_id_' + str(process_id) + '.csv')
 
     csv = csv.replace(np.nan, '', regex=True)
 
@@ -400,9 +400,17 @@ def validate_changes(request):
 
                 csv.at[line, h] = row[h]
 
-    csv.to_csv('./media/uploads/get_process_id_' + str(process_id) + '.csv', index=False)
+    csv.to_csv(os.environ['HOME'] + '/Documents/myfiles/get_process_id_' + str(process_id) + '.csv', index=False)
 
-    file = {'file': open('./media/uploads/get_process_id_' + str(process_id) + '.csv', 'rb')}
+    process = Process.objects.get(pk=process_id)
+
+    file = File.objects.get(id_process=process)
+
+    file.path = 'get_process_id_' + str(process_id) + '.csv'
+
+    file.save()
+
+    file = {'file': open(os.environ['HOME'] + '/Documents/myfiles/get_process_id_' + str(process_id) + '.csv', 'rb')}
 
     header_data = {
 
@@ -511,27 +519,24 @@ def update_document(process_id, data, headers, file_name, status=None):
     """Update process and file path."""
 
     try:
-        process_id = process_id
 
         update_process = Process.objects.get(pk=process_id)
 
         update_file = File.objects.get(id_process=update_process)
 
-        data_frame = pd.DataFrame(data)
-
-        data_frame.columns = headers
+        data_frame = pd.read_csv(os.environ['HOME'] + '/Documents/myfiles/get_process_id_' + str(process_id) + '.csv')
 
         data_frame.to_csv(os.environ['HOME'] + '/Documents/myfiles/' + file_name, index=False)
 
         if status:
 
-            status_ready = Status.objects.get(pk=2)
+            step = ProcessStep.objects.get(step='submit-correct-data')
 
-            update_process.id_status = status_ready
+            update_process.id_step = step
 
             update_process.save()
 
-        update_file.path = '/uploads/' + file_name
+        update_file.path = file_name
 
         update_file.save()
 
@@ -556,16 +561,16 @@ def update_document_to_ready_to_upload(request):
 
     result = update_document(process_id, data, headers, file_name, 2)
 
-    try:
-
-        r = requests.post('http://localhost:8080/poc-forklift/process/')
-
-        content = r.json()
-
-    except requests.exceptions.RequestException as e:
-        # catastrophic error. bail.
-        print("error", e)
-        sys.exit(1)
+    # try:
+    #
+    #     r = requests.post('http://localhost:8080/poc-forklift/process/')
+    #
+    #     content = r.json()
+    #
+    # except requests.exceptions.RequestException as e:
+    #     # catastrophic error. bail.
+    #     print("error", e)
+    #     sys.exit(1)
 
     return result
 
@@ -683,15 +688,34 @@ def get_draft(request):
 
         if step == 'column-mapping':
 
-            headers_instance = ProcessHeaders.objects.filter(id_process=process).last()
+            try:
 
-            new_headers = json.dumps(headers_instance.header_system)
+                headers_instance = ProcessHeaders.objects.filter(id_process=process).last()
+
+            except ProcessHeaders.DoesNotExist:
+
+                headers_instance = None
+
+            if headers_instance:
+
+                new_headers = json.dumps(headers_instance.header_system)
+
+            else:
+
+                for header in data_headers:
+
+                    new_headers.append("")
+
+            new_headers = ", ".join(new_headers)
 
         return HttpResponse(json.dumps({"data": data_list,
                                         "headers": data_headers,
                                         "step": step,
                                         "new_headers": new_headers,
                                         "process_id": process.pk,
+                                        "job_name": process.name,
+                                        "api_user": process.api_user,
+                                        "environment": process.environment,
                                         }), content_type="application/json")
 
     return HttpResponse(json.dumps({"error": "nothing to show"}), content_type="application/json")
