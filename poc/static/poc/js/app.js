@@ -585,21 +585,17 @@ class Poc{
         });
     }
 
-    async update_document_to_ready_to_upload(process_id, section){
+    async update_document_to_ready_to_upload(process_id, section, data=null, headers=null){
 
          return new Promise(resolve => {
 
-             let data;
-
-             let headers;
-
-             if (section === 'validate'){
+             if (section === 'validate' && !data && !headers){
 
                  data = this.validation_table.getData(false);
 
                  headers = this.validation_table.getHeaders();
 
-             } else if (section === 'edit') {
+             } else if (section === 'edit' && !data && !headers) {
 
                  data = this.editing_table.getData(false);
 
@@ -868,7 +864,7 @@ class Poc{
 
                 } else {
 
-                    let update_document = await this.update_document_to_ready_to_upload(this._process_id, 'edit');
+                    await this.update_document_to_ready_to_upload(this._process_id, 'edit', data, headers);
 
                     let active = $("#breadcrumb li.active").attr('id');
 
@@ -1649,11 +1645,17 @@ document.getElementById('file_form').addEventListener('submit', function (e) {
 
     let my_file = get_file('file_csv');
 
-    let is_file = select_file_alert('file_csv');
+    let validation = checkFile();
 
-    if (is_file){
+    if (validation){
 
-        Poc_functions.mapping_columns(my_file);
+        let is_file = select_file_alert('file_csv');
+
+        if (is_file){
+
+            Poc_functions.mapping_columns(my_file);
+
+        }
 
     }
 
@@ -2005,3 +2007,36 @@ $(document).on('click', '.draft_process', function () {
     Poc_functions.return_to_process(process_id)
 
 });
+
+
+function checkFile() {
+
+    let file = get_file('file_csv');
+
+    let sFileName = file.name;
+
+    let sFileExtension = sFileName.split('.')[sFileName.split('.').length - 1].toLowerCase();
+
+    let iFileSize = file.size;
+
+    let iConvert = (file.size / 1048576).toFixed(2);
+
+    // OR together the accepted extensions and NOT it. Then OR the size cond.
+
+    if (!(sFileExtension === "csv") || iFileSize > 10485760) { /// 10 mb
+
+        let txt = "File type : " + sFileExtension + "\n\n";
+
+        txt += "Size: " + iConvert + " MB \n\n";
+
+        txt += "Please make sure your file is in csv format and less than 10 MB.\n\n";
+
+        alert(txt);
+
+        return false
+
+    }
+
+    return true
+
+}

@@ -1,22 +1,25 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from django.shortcuts import render
+# Django imports
+
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.http import HttpResponse
-import pandas as pd
-import json
-import requests
+from django.shortcuts import render
 
-import sys
-import os
-import types
-
-import numpy as np
+# Apps imports
 
 from poc.choices import ENVIRONMENTS, API_HEADERS, ALPHABET
 from poc.forms import ProcessForm, FileForm
 from poc.models import Status, Process, File, ProcessStep, ProcessHeaders
-from django.contrib.auth.models import User
-from django.conf import settings
+
+# Another imports
+import json
+import numpy as np
+import os
+import pandas as pd
+import requests
+import sys
 
 
 url_environment = {"sbx": "https://edna.identitymind.com/im/admin/jax/merchant/"}
@@ -71,6 +74,8 @@ def endpoint(request):
 
 def basic_auth(request):
 
+    """Verify if api user and api token are valid."""
+
     session = requests.Session()
 
     api_user = request.POST['api_user']
@@ -89,6 +94,8 @@ def basic_auth(request):
 
 
 def get_headers(request):
+
+    """Verify if file has valid headers before column mapping step."""
 
     # is used
 
@@ -118,6 +125,8 @@ def get_headers(request):
 
 
 def show_correct_file_in_ui(request):
+
+    """Send data to build the table with data from original file."""
 
     # is used
 
@@ -180,6 +189,8 @@ def show_correct_file_in_ui(request):
 
 def replace_headers(request):
 
+    """Create file with correct headers after mapping them."""
+
     # is used
 
     if request.method == 'POST':
@@ -236,6 +247,8 @@ def replace_headers(request):
 
 
 def get_process_id(request):
+
+    """Send file to `/validate` request that returns a processId which is used through all the process."""
 
     # is used
 
@@ -304,6 +317,8 @@ def get_process_id(request):
 
 
 def show_row_with_errors(request):
+
+    """Send data to create table with errors."""
 
     errors = request.POST['errors']
 
@@ -388,6 +403,8 @@ def show_row_with_errors(request):
 
 def validate_changes(request):
 
+    """Validate changes on file, if there are no more it continues to schedule job step."""
+
     data = json.loads(request.POST['data'])
 
     headers = json.loads(request.POST['headers'])
@@ -401,6 +418,7 @@ def validate_changes(request):
     review = review_headers(headers)
 
     if review:
+
         return HttpResponse(json.dumps({"undefined_headers": review}))
 
     data_frame = pd.DataFrame(data)
@@ -518,6 +536,8 @@ def main_array(errors, headers):
 
 def review_headers(headers):
 
+    """Function that check if the headers of the file are in the array of valid headers."""
+
     if all(elem in API_HEADERS for elem in headers):
 
         return []
@@ -570,13 +590,17 @@ def update_document(process_id, data, headers, file_name, status=None):
 
 def update_document_to_ready_to_upload(request):
 
+    """Set process instance to ready to upload status."""
+
     data = json.loads(request.POST['data'])
 
     headers = json.loads(request.POST['headers'])
 
     process_id = json.loads(request.POST['process_id'])
 
-    headers = headers.split(',')
+    if not isinstance(headers, list):
+
+        headers = headers.split(',')
 
     file_name = 'csv_ready_to_upload_' + str(process_id) + '.csv'
 
@@ -597,6 +621,8 @@ def update_document_to_ready_to_upload(request):
 
 
 def save_process_setup(request):
+
+    """Save process after set credentials."""
     # Is used
 
     if request.method == 'POST':
@@ -633,6 +659,8 @@ def save_process_setup(request):
 
 
 def save_progress_file(request):
+
+    """Save progress file. It could be in editing data step or validating data step."""
 
     if request.method == 'POST':
 
@@ -676,6 +704,8 @@ def save_progress_file(request):
 
 
 def get_draft(request):
+
+    """Return user to last step."""
 
     if request.method == 'POST':
 
@@ -745,6 +775,9 @@ def get_draft(request):
 
 
 def save_headers_for_later(request):
+
+    """Save headers on column mapping step, if user needs to save and return later, they don't lose the headers that
+    already was mapped."""
 
     if request.method == 'POST':
 
