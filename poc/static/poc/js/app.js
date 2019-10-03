@@ -585,13 +585,27 @@ class Poc{
         });
     }
 
-    async update_document_to_ready_to_upload(process_id){
+    async update_document_to_ready_to_upload(process_id, section){
 
          return new Promise(resolve => {
 
-             let data = this.editing_table.getData(false);
+             let data;
 
-             let headers = this.editing_table.getHeaders();
+             let headers;
+
+             if (section === 'validate'){
+
+                 data = this.validation_table.getData(false);
+
+                 headers = this.validation_table.getHeaders();
+
+             } else if (section === 'edit') {
+
+                 data = this.editing_table.getData(false);
+
+                headers = this.editing_table.getHeaders();
+
+             }
 
              let request_headers = new Headers();
 
@@ -757,9 +771,9 @@ class Poc{
         });
     }
 
-    async init_process(){
+    async init_process(data=null, headers=null, section=''){
 
-        let process_id = await this.get_process_id();
+        let process_id = await this.get_process_id(data, headers, section);
 
         process_id = process_id['process_id'];
 
@@ -797,6 +811,7 @@ class Poc{
                         let undefined_length = "is not a valid header";
 
                         if (results['undefined_headers'].length > 1)
+
                             undefined_length = "are not valid headers";
 
                         this.alert_message(document.getElementById("error_editing_data"),
@@ -853,7 +868,7 @@ class Poc{
 
                 } else {
 
-                    let update_document = await this.update_document_to_ready_to_upload(this._process_id);
+                    let update_document = await this.update_document_to_ready_to_upload(this._process_id, 'edit');
 
                     let active = $("#breadcrumb li.active").attr('id');
 
@@ -915,14 +930,14 @@ class Poc{
 
         if (results.hasOwnProperty('undefined_headers')) {
 
-            let undefined_length = "is";
+            let undefined_length = "is not a valid header";
 
             if (results['undefined_headers'].length > 1)
 
-                undefined_length = "are";
+                undefined_length = "are not valid headers";
 
             this.alert_message(document.getElementById("error_data_validation"),
-                `${results['undefined_headers'].join(', ')} ${undefined_length} not a valid headers`,
+                `${results['undefined_headers'].join(', ')} ${undefined_length}`,
                 "danger");
 
             error_data_validation.css('display', 'block');
@@ -1005,7 +1020,7 @@ class Poc{
 
                     } else {
 
-                        let update_document = await this.update_document_to_ready_to_upload(this._process_id);
+                        let update_document = await this.update_document_to_ready_to_upload(this._process_id, 'validate');
 
                         let active = $("#breadcrumb li.active").attr('id');
 
@@ -1045,15 +1060,17 @@ class Poc{
         }
     }
 
-    async validate_changes(){
+    async validate_changes(data, headers){
 
         return new Promise(resolve => {
 
-            // let table = $('#my_tests');
+            if (!data && !headers){
 
-            let data = this.validation_table.getData(false);
+                data = this.validation_table.getData(false);
 
-            let headers = this.validation_table.getHeaders();
+                headers = this.validation_table.getHeaders();
+
+            }
 
             let request_headers = new Headers();
 
@@ -1132,13 +1149,17 @@ class Poc{
         });
     }
 
-    async get_process_id(){
+    async get_process_id(data, headers, section){
 
         return new Promise(resolve => {
 
-            let data = this.editing_table.getData(false);
+            if (!data && !headers){
 
-            let headers = this.editing_table.getHeaders();
+                data = this.editing_table.getData(false);
+
+                headers = this.editing_table.getHeaders();
+
+            }
 
             let request_headers = new Headers();
 
@@ -1153,6 +1174,8 @@ class Poc{
             form_data.append('data', JSON.stringify(data));
 
             form_data.append('headers', JSON.stringify(headers));
+
+            form_data.append('section', JSON.stringify(section));
 
             form_data.append('process_id', JSON.stringify(this._process_id));
 
@@ -1246,11 +1269,24 @@ class Poc{
 
     }
 
-    async save_edit_file(){
+    async save_file_changes(section){
 
-        let data = this.editing_table.getData(false);
+        let data;
 
-        let headers = this.editing_table.getHeaders();
+        let headers;
+
+        if (section === 'edit'){
+
+            data = this.editing_table.getData(false);
+
+            headers = this.editing_table.getHeaders();
+
+        } else {
+
+            data = this.validation_table.getData(false);
+
+            headers = this.validation_table.getHeaders();
+        }
 
         let request_headers = new Headers();
 
@@ -1267,6 +1303,8 @@ class Poc{
         form_data.append('data', JSON.stringify(data));
 
         form_data.append('headers', JSON.stringify(headers));
+
+        form_data.append('section', JSON.stringify(section));
 
         let req = new Request(endpoint, {
             method: 'POST',
@@ -1372,6 +1410,10 @@ class Poc{
                 `<h6 class="card-subtitle my-2 text-muted"><b>Environment: ${this._environment}</b></h6><br>`;
 
             $('#summary').append(summary);
+
+        } else if (step === 'data-validation'){
+
+            let get_process_id = await this.init_process(data, headers, 'validating')
         }
 
     }
@@ -1756,7 +1798,13 @@ document.getElementById('validate-changes').addEventListener('click', function (
 
 document.getElementById('save-edit-file').addEventListener('click', function () {
 
-    Poc_functions.save_edit_file();
+    Poc_functions.save_file_changes('edit');
+
+});
+
+document.getElementById('save-validate-file').addEventListener('click', function () {
+
+    Poc_functions.save_file_changes('validating');
 
 });
 

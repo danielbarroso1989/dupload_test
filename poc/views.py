@@ -8,6 +8,7 @@ import requests
 
 import sys
 import os
+import types
 
 import numpy as np
 
@@ -244,13 +245,31 @@ def get_process_id(request):
 
     process_id = json.loads(request.POST['process_id'])
 
-    headers = headers.split(',')
+    section = json.loads(request.POST['section'])
+
+    remove_from_list = ['Errors', 'Line']
+
+    result = all(elem in headers for elem in remove_from_list)
+
+    if not isinstance(headers, list):
+
+        headers = headers.split(',')
 
     data_frame = pd.DataFrame(data)
 
     data_frame.columns = headers
 
-    name = 'get_process_id_' + str(process_id) + '.csv'
+    if result:
+
+        data_frame.drop(["Errors", "Line"], axis=1, inplace=True)
+
+    if section:
+
+        name = section + '_file_' + str(process_id) + '.csv'
+
+    else:
+
+        name = 'get_process_id_' + str(process_id) + '.csv'
 
     file = File.objects.get(id_process=Process.objects.get(pk=process_id))
 
@@ -373,9 +392,11 @@ def validate_changes(request):
 
     headers = json.loads(request.POST['headers'])
 
-    process_id = json.loads(request.POST['process_id'])
+    if not isinstance(headers, list):
 
-    headers = headers.split(',')
+        headers = headers.split(',')
+
+    process_id = json.loads(request.POST['process_id'])
 
     review = review_headers(headers)
 
@@ -621,15 +642,17 @@ def save_progress_file(request):
 
         process_id = json.loads(request.POST['process_id'])
 
+        section = json.loads(request.POST['section'])
+
         headers = headers.split(',')
 
         data_frame = pd.DataFrame(data)
 
         data_frame.columns = headers
 
-        file_name = 'edit_file_' + str(process_id)
+        file_name = section + '_file_' + str(process_id)
 
-        file_path = 'edit_file_' + str(process_id) + '.csv'
+        file_path = section + '_file_' + str(process_id) + '.csv'
 
         num_column = len(headers)
 
