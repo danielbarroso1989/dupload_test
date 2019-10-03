@@ -65,6 +65,9 @@
                             {% elif process.id_status.pk == 6 %}
                                 <td>Error</td>
                                 <td></td>
+                            {% elif process.id_status.pk == 7 %}
+                                <td><a class="draft_process" href="#" name="{{ process.id }}">Draft</a></td>
+                                <td></td>
                             {% endif %}
 
                         {% endif %}

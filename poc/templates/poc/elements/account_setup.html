@@ -15,40 +15,40 @@
         </div>
     </div>
 </div>
-<form id="process_form" method="post" action="." enctype="multipart/form-data">
+<form id="process_form" method="post" action=".">
     {% csrf_token %}
-<div class="py-5">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-8">
-                <div class="form-group row">
-                    <label class="col-2">Job Name</label>
-                    <div class="col-10">
-                        {{ process_form.name }}
+    <div class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group row">
+                        <label class="col-2">Job Name</label>
+                        <div class="col-10">
+                            {{ process_form.name }}
+                        </div>
                     </div>
-                </div>
 
-                <div class="form-group row">
-                    <label class="col-2">Environment</label>
-                    <div class="col-10">
-                        {{ process_form.environment }}
+                    <div class="form-group row">
+                        <label class="col-2">Environment</label>
+                        <div class="col-10">
+                            {{ process_form.environment }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-group row">
-                    <label class="col-2">API User</label>
-                    <div class="col-10">
-                        {{ process_form.api_user }}
+                    <div class="form-group row">
+                        <label class="col-2">API User</label>
+                        <div class="col-10">
+                            {{ process_form.api_user }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-group row">
-                    <label for="api_key" class="col-2 col-form-label">API Key</label>
-                    <div class="col-10">
-                        {{ process_form.api_token }}
+                    <div class="form-group row">
+                        <label for="api_key" class="col-2 col-form-label">API Key</label>
+                        <div class="col-10">
+                            {{ process_form.api_token }}
+                        </div>
                     </div>
+                    <button id="submit-account-setup" class="btn btn-primary" type="submit">Save and Continue</button>
                 </div>
-                <button id="submit-account-setup" class="btn btn-primary">Continue</button>
-
             </div>
         </div>
     </div>
-</div>
+</form>

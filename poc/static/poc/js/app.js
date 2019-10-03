@@ -61,8 +61,6 @@ class Poc{
 
         this._job_name = document.getElementById("job_name").value;
 
-        console.log("api user", this._api_user)
-
         if (this._api_key && this._api_user && this._environment && this._job_name) {
 
             // let result_validate_credentials = await this.validate_credentials(api_user, api_key, environment);
@@ -316,8 +314,6 @@ class Poc{
             try {
 
                 this.errors_mapping = await this.get_validate_results(this.processId);
-
-                console.log("thus: ", this.errors_mapping);
                 
                 if (this.errors_mapping.length > 0){
     
@@ -402,7 +398,66 @@ class Poc{
 
     }
 
+    async account_setup_process(){
+
+        let results = await this.set_credentials();
+
+        if (!results.hasOwnProperty('form_error')) {
+
+            this._process_id = results['process'];
+
+            this.continue_section('account-setup', 'file-upload')
+
+        }
+    }
+
+    async set_credentials(){
+
+        return new Promise(resolve => {
+
+            let request_headers = new Headers();
+
+            request_headers.append('Accept', 'application/json');
+
+            request_headers.append('X-CSRFToken', csrftoken);
+
+            let endpoint = 'http://localhost:8000/save_process_setup/';
+
+            let form_data = new FormData();
+
+            form_data.append('name', this._job_name);
+
+            form_data.append('api_user', this._api_user);
+
+            form_data.append('api_token', this._api_key);
+
+            form_data.append('environment', this._environment);
+
+            let req = new Request(endpoint, {
+                method: 'POST',
+                headers: request_headers,
+                body: form_data,
+            });
+
+            fetch(req)
+                .then((response) => {
+
+                    resolve(response.json());
+
+                })
+                .catch((err) => {
+                    console.log('ERROR:', err.message);
+                });
+
+        });
+    }
+
+
+    //esto empezaba aqui pero ahora se guarda primero las credenciales
+
     async mapping_columns(file) {
+
+        let result = await this.show_correct_file_in_ui(file);
 
         let csv_headers = await this.get_headers(file);
 
@@ -410,11 +465,57 @@ class Poc{
 
         if (csv_headers) {
 
-            this.continue_section("file-upload", "column-mapping");
+            this.display_mapping_headers_selects(csv_headers)
+
+        } else {
+
+            this.continue_section("file-upload", "editing-data");
+
+            let headers = result['headers'];
+
+            let data = result['data'];
+
+            let is_type = result['is_type'];
+
+            this._process_id = result['process'];
+
+            var width = document.getElementById('breadcrumb').offsetWidth;
+
+            this.editing_table = jexcel(document.getElementById('edit_data'),{
+                data:data,
+                colHeaders: headers,
+                defaultColWidth: '200px',
+                tableWidth: `${width}px`,
+                tableOverflow:true,
+                lazyLoading:true,
+                loadingSpin:true,
+            });
+
+            $('div#edit_data table').addClass('edit_table');
+
+            this.editing_table.setHeight(0, 25);
+
+            if (!is_type){
+
+                this.editing_table.insertColumn(1, 0, 1, null);
+
+                this.editing_table.setHeader(0, 'Transaction Type');
+
+            }
+
+            $('.se-pre-con').css('display', 'none');
+
+        }
+
+    }
+
+    display_mapping_headers_selects(headers){
+
+        this.continue_section("file-upload", "column-mapping");
 
             let select_html = `<select class="js-example-basic-single api_headers new_header"><option value=""></option></select>`;
 
-            $.each(csv_headers, function (i, val) {
+            $.each(headers, function (i, val) {
 
                 let tr = `<tr><th scope="row">${val}</th><th scope="row">${select_html}</th></tr>`;
 
@@ -445,48 +546,6 @@ class Poc{
 
             headers_select.populate();
 
-        } else {
-
-            this.continue_section("file-upload", "editing-data");
-
-            let result = await this.show_correct_file_in_ui(file);
-
-            let headers = result['headers'];
-
-            let data = result['data'];
-
-            let is_type = result['is_type'];
-
-            this._process_id = result['process'];
-
-            var width = document.getElementById('breadcrumb').offsetWidth;
-
-            this.editing_table = jexcel(document.getElementById('edit_data'),{
-                data:data,
-                colHeaders: headers,
-                defaultColWidth: '200px',
-                tableWidth: `${width}px`,
-                tableOverflow:true,
-                lazyLoading:true,
-                loadingSpin:true,
-            });
-
-            $('div#edit_data table').addClass('edit_table');
-
-            this.editing_table.setHeight(0, 25);
-
-            if (!is_type){
-
-                this.editing_table.insertColumn(1, 0, 1, null);
-
-                this.editing_table.setHeader(0, 'type');
-
-            }
-
-            $('.se-pre-con').css('display', 'none');
-
-        }
-
     }
 
     async show_correct_file_in_ui(file){
@@ -505,13 +564,7 @@ class Poc{
 
             form_data.append('path', file);
 
-            form_data.append('name', this._job_name);
-
-            form_data.append('api_user', this._api_user);
-
-            form_data.append('api_token', this._api_key);
-
-            form_data.append('environment', this._environment);
+            form_data.append('process_id', JSON.stringify(this._process_id));
 
             let req = new Request(endpoint, {
                 method: 'POST',
@@ -532,13 +585,23 @@ class Poc{
         });
     }
 
-    async update_document_to_ready_to_upload(process_id){
+    async update_document_to_ready_to_upload(process_id, section, data=null, headers=null){
 
          return new Promise(resolve => {
 
-             let data = this.editing_table.getData(false);
+             if (section === 'validate' && !data && !headers){
 
-             let headers = this.editing_table.getHeaders();
+                 data = this.validation_table.getData(false);
+
+                 headers = this.validation_table.getHeaders();
+
+             } else if (section === 'edit' && !data && !headers) {
+
+                 data = this.editing_table.getData(false);
+
+                headers = this.editing_table.getHeaders();
+
+             }
 
              let request_headers = new Headers();
 
@@ -589,6 +652,8 @@ class Poc{
             let form_data = new FormData();
 
             form_data.append('csv_file', file);
+
+            form_data.append('process_id', JSON.stringify(this._process_id));
 
             let req = new Request(endpoint, {
                 method: 'POST',
@@ -644,7 +709,7 @@ class Poc{
 
             this.editing_table.insertColumn(1, 0, 1, null);
 
-            this.editing_table.setHeader(0, 'type');
+            this.editing_table.setHeader(0, 'Transaction Type');
         }
 
         $('.se-pre-con').css('display', 'none');
@@ -677,13 +742,7 @@ class Poc{
 
             form_data.append('path', file);
 
-            form_data.append('name', this._job_name);
-
-            form_data.append('api_user', this._api_user);
-
-            form_data.append('api_token', this._api_key);
-
-            form_data.append('environment', this._environment);
+            form_data.append('process_id', JSON.stringify(this._process_id));
 
             form_data.append('new_headers', JSON.stringify(headers_array));
 
@@ -695,8 +754,6 @@ class Poc{
 
             fetch(req)
             .then((response)=>{
-
-                // resolve({"file_location": window.location.origin + "/static/csv/new_headers.csv", "process_id": response['processId']})
 
                 resolve(response.json())
 
@@ -710,9 +767,9 @@ class Poc{
         });
     }
 
-    async init_process(){
+    async init_process(data=null, headers=null, section=''){
 
-        let process_id = await this.get_process_id();
+        let process_id = await this.get_process_id(data, headers, section);
 
         process_id = process_id['process_id'];
 
@@ -721,7 +778,7 @@ class Poc{
         let validate_button = $('#validate-jexcel');
 
         validate_button.toggle();
-        
+
         let validating_button = $('#validating_button');
 
         validating_button.toggle();
@@ -750,6 +807,7 @@ class Poc{
                         let undefined_length = "is not a valid header";
 
                         if (results['undefined_headers'].length > 1)
+
                             undefined_length = "are not valid headers";
 
                         this.alert_message(document.getElementById("error_editing_data"),
@@ -806,7 +864,7 @@ class Poc{
 
                 } else {
 
-                    let update_document = await this.update_document_to_ready_to_upload(this._process_id);
+                    await this.update_document_to_ready_to_upload(this._process_id, 'edit', data, headers);
 
                     let active = $("#breadcrumb li.active").attr('id');
 
@@ -868,14 +926,14 @@ class Poc{
 
         if (results.hasOwnProperty('undefined_headers')) {
 
-            let undefined_length = "is";
+            let undefined_length = "is not a valid header";
 
             if (results['undefined_headers'].length > 1)
 
-                undefined_length = "are";
+                undefined_length = "are not valid headers";
 
             this.alert_message(document.getElementById("error_data_validation"),
-                `${results['undefined_headers'].join(', ')} ${undefined_length} not a valid headers`,
+                `${results['undefined_headers'].join(', ')} ${undefined_length}`,
                 "danger");
 
             error_data_validation.css('display', 'block');
@@ -958,7 +1016,7 @@ class Poc{
 
                     } else {
 
-                        let update_document = await this.update_document_to_ready_to_upload(this._process_id);
+                        let update_document = await this.update_document_to_ready_to_upload(this._process_id, 'validate');
 
                         let active = $("#breadcrumb li.active").attr('id');
 
@@ -998,15 +1056,17 @@ class Poc{
         }
     }
 
-    async validate_changes(){
+    async validate_changes(data, headers){
 
         return new Promise(resolve => {
 
-            // let table = $('#my_tests');
+            if (!data && !headers){
 
-            let data = this.validation_table.getData(false);
+                data = this.validation_table.getData(false);
 
-            let headers = this.validation_table.getHeaders();
+                headers = this.validation_table.getHeaders();
+
+            }
 
             let request_headers = new Headers();
 
@@ -1085,13 +1145,17 @@ class Poc{
         });
     }
 
-    async get_process_id(){
+    async get_process_id(data, headers, section){
 
         return new Promise(resolve => {
 
-            let data = this.editing_table.getData(false);
+            if (!data && !headers){
 
-            let headers = this.editing_table.getHeaders();
+                data = this.editing_table.getData(false);
+
+                headers = this.editing_table.getHeaders();
+
+            }
 
             let request_headers = new Headers();
 
@@ -1106,6 +1170,8 @@ class Poc{
             form_data.append('data', JSON.stringify(data));
 
             form_data.append('headers', JSON.stringify(headers));
+
+            form_data.append('section', JSON.stringify(section));
 
             form_data.append('process_id', JSON.stringify(this._process_id));
 
@@ -1191,7 +1257,6 @@ class Poc{
 
                     resolve(response.json());
 
-                    // console.log(response.json())
                 })
                 .catch((err) => {
                     console.log('ERROR:', err.message);
@@ -1199,6 +1264,234 @@ class Poc{
         });
 
     }
+
+    async save_file_changes(section){
+
+        let data;
+
+        let headers;
+
+        if (section === 'edit'){
+
+            data = this.editing_table.getData(false);
+
+            headers = this.editing_table.getHeaders();
+
+        } else {
+
+            data = this.validation_table.getData(false);
+
+            headers = this.validation_table.getHeaders();
+        }
+
+        let request_headers = new Headers();
+
+        request_headers.append('Accept', 'application/json');
+
+        request_headers.append('X-CSRFToken', csrftoken);
+
+        let endpoint = 'http://localhost:8000/save_progress_file/';
+
+        let form_data = new FormData();
+
+        form_data.append('process_id', JSON.stringify(this._process_id));
+
+        form_data.append('data', JSON.stringify(data));
+
+        form_data.append('headers', JSON.stringify(headers));
+
+        form_data.append('section', JSON.stringify(section));
+
+        let req = new Request(endpoint, {
+            method: 'POST',
+            headers: request_headers,
+            body: form_data,
+        });
+
+        fetch(req)
+            .then((response)=>{
+
+                if (response.status === 200){
+
+                    console.log("todo ok");
+
+                }
+
+            })
+            .catch((error)=>{
+
+                console.log('ERROR: ', error.message);
+
+            });
+
+    }
+
+    async return_to_process(process_id){
+
+        let result = await this.go_section_from_process_table(process_id);
+
+        let data = result['data'];
+
+        let headers = result['headers'];
+
+        let step = result['step'];
+
+        let new_headers = result['new_headers'];
+
+        this._process_id = result['process_id'];
+
+        this._job_name = result['job_name'];
+
+        this._api_user = result['api_user'];
+
+        this._environment = result['environment'];
+
+        this.continue_section('process-table', step);
+
+        if (step === 'column-mapping'){
+
+            this.display_mapping_headers_selects(headers);
+
+            new_headers = new_headers.split(", ");
+
+            let iteration = 0;
+
+            $( ".new_header" ).each(function() {
+
+                let $this = $(this);
+
+                    let value = new_headers[iteration].replace('"', "");
+
+                    if (value === '"'){
+
+                        $this.val("");
+
+
+                    } else {
+
+                        $this.val(value);
+
+                    }
+
+                    $this.select2({width: '30%',
+                                   placeholder: 'Select Header'}
+                                   ).trigger('change');
+
+                    iteration ++;
+
+            });
+
+        } else if (step === 'editing-data'){
+
+            let width = document.getElementById('breadcrumb').offsetWidth;
+
+            this.editing_table = jexcel(document.getElementById('edit_data'),{
+                    data:data,
+                    colHeaders: headers,
+                    defaultColWidth: '200px',
+                    tableWidth: `${width}px`,
+                    tableOverflow:true,
+                    lazyLoading:true,
+                    loadingSpin:true,
+                });
+
+            $('div#edit_data table').addClass('edit_table');
+
+            $('.se-pre-con').css('display', 'none');
+
+        } else if (step === 'submit-correct-data'){
+
+            let summary = `<h6 class="card-subtitle my-2 text-muted"><b>Job Name: ${this._job_name}</b></h6><br>` +
+                `<h6 class="card-subtitle my-2 text-muted"><b>Api User: ${this._api_user}</b></h6><br>` +
+                `<h6 class="card-subtitle my-2 text-muted"><b>Environment: ${this._environment}</b></h6><br>`;
+
+            $('#summary').append(summary);
+
+        } else if (step === 'data-validation'){
+
+            let get_process_id = await this.init_process(data, headers, 'validating')
+        }
+
+    }
+
+    async go_section_from_process_table(process_id){
+
+        return new Promise(resolve => {
+
+            let request_headers = new Headers();
+
+            request_headers.append('Accept', 'application/json');
+
+            request_headers.append('X-CSRFToken', csrftoken);
+
+            let endpoint = 'http://localhost:8000/get_draft/';
+
+            let form_data = new FormData();
+
+            form_data.append('process_id', JSON.stringify(process_id));
+
+            let req = new Request(endpoint, {
+                method: 'POST',
+                headers: request_headers,
+                body: form_data,
+            });
+
+            fetch(req)
+            .then((response)=>{
+
+                resolve(response.json())
+
+            })
+            .catch((error)=>{
+
+                console.log('ERROR: ', error.message);
+
+            });
+
+        });
+
+    }
+
+    async save_headers_for_later(headers){
+
+        let request_headers = new Headers();
+
+            request_headers.append('Accept', 'application/json');
+
+            request_headers.append('X-CSRFToken', csrftoken);
+
+            let endpoint = 'http://localhost:8000/save_headers_for_later/';
+
+            let form_data = new FormData();
+
+            form_data.append('process_id', JSON.stringify(this._process_id));
+
+            form_data.append('new_headers', JSON.stringify(headers));
+
+            let req = new Request(endpoint, {
+                method: 'POST',
+                headers: request_headers,
+                body: form_data,
+            });
+
+            fetch(req)
+
+            .then((response)=>{
+
+                if (response.status === 200){
+
+                    console.log("ok")
+                }
+
+            })
+            .catch((error)=>{
+
+                console.log('ERROR: ', error.message);
+
+            });
+
+    }
+
 
     selectionActive(instance, x1, y1, x2, y2, origin,) {
 
@@ -1342,15 +1635,47 @@ document.getElementById('process_form').addEventListener('submit', function (e) 
 
     e.preventDefault();
 
+        Poc_functions.account_setup_process();
+
+});
+
+document.getElementById('file_form').addEventListener('submit', function (e) {
+
+    e.preventDefault();
+
     let my_file = get_file('file_csv');
 
-    let is_file = select_file_alert('file_csv');
+    let validation = checkFile();
 
-    if (is_file){
+    if (validation){
 
-        Poc_functions.mapping_columns(my_file);
+        let is_file = select_file_alert('file_csv');
+
+        if (is_file){
+
+            Poc_functions.mapping_columns(my_file);
+
+        }
 
     }
+
+});
+
+document.getElementById('save-headers').addEventListener('click', function () {
+
+    let headers = [];
+
+
+    $( ".new_header" ).each(function() {
+
+        let value = $(this).find('option:selected').text();
+
+        headers.push(value)
+
+    });
+
+    Poc_functions.save_headers_for_later(headers);
+
 
 
 });
@@ -1456,8 +1781,6 @@ document.getElementById('validate-changes').addEventListener('click', function (
             `Header columns must be unique, it seems you repeated this: ${duplicates.join(', ')}`,
             "danger");
 
-        console.log(`duplicados ${duplicates.join(', ')}`);
-
         $('#error_data_validation').css('display', 'block');
 
     } else if(duplicates.length > 1){
@@ -1475,37 +1798,18 @@ document.getElementById('validate-changes').addEventListener('click', function (
 
 });
 
+document.getElementById('save-edit-file').addEventListener('click', function () {
 
-// document.getElementById('submit-file-upload').addEventListener('click', function (e) {
-//
-//     // Poc_functions.submit_upload_file('file_csv');
-//     select_file_alert('file_csv');
-//
-// });
+    Poc_functions.save_file_changes('edit');
 
-// document.getElementById('submit-reload-upload').addEventListener('click', function (e) {
-//
-//     select_file_alert('reload_file_csv');
-//
-// });
+});
 
-// document.getElementById('submit-data').addEventListener('click', function () {
-//
-//     let myFile;
-//
-//     if (document.getElementById('reload_file_csv').files[0]) {
-//
-//         myFile = document.getElementById('reload_file_csv').files[0];
-//
-//     } else {
-//
-//         myFile = document.getElementById('file_csv').files[0];
-//
-//     }
-//
-//     Poc_functions.SubmitData(myFile);
-//
-// });
+document.getElementById('save-validate-file').addEventListener('click', function () {
+
+    Poc_functions.save_file_changes('validating');
+
+});
+
 
 function select_file_alert(input_id){
 
@@ -1695,3 +1999,44 @@ window.onbeforeunload = e => {
 return true
 
 };
+
+$(document).on('click', '.draft_process', function () {
+
+    let process_id = $(this).attr('name');
+
+    Poc_functions.return_to_process(process_id)
+
+});
+
+
+function checkFile() {
+
+    let file = get_file('file_csv');
+
+    let sFileName = file.name;
+
+    let sFileExtension = sFileName.split('.')[sFileName.split('.').length - 1].toLowerCase();
+
+    let iFileSize = file.size;
+
+    let iConvert = (file.size / 1048576).toFixed(2);
+
+    // OR together the accepted extensions and NOT it. Then OR the size cond.
+
+    if (!(sFileExtension === "csv") || iFileSize > 10485760) { /// 10 mb
+
+        let txt = "File type : " + sFileExtension + "\n\n";
+
+        txt += "Size: " + iConvert + " MB \n\n";
+
+        txt += "Please make sure your file is in csv format and less than 10 MB.\n\n";
+
+        alert(txt);
+
+        return false
+
+    }
+
+    return true
+
+}

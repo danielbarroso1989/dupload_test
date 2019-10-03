@@ -7,21 +7,21 @@
                 <p class="mb-0">Please attach the CSV document to validate</p>
             </div>
             <div class="col-lg-4 d-flex justify-content-center align-items-center p-3">
-                <div class="input-group">
-                    <div class="custom-file">
-                        {{ file_form.path }}
-                        <label class="custom-file-label" for="file_csv">Choose file</label>
+                <form id="file_form" method="post" action="." enctype="multipart/form-data">
+                    <div class="input-group">
+                        <div class="custom-file">
+                            {{ file_form.path }}
+                            <label class="custom-file-label" for="file_csv">Choose file</label>
+                        </div>
+    {#                    <div class="input-group-append pl-2">#}
+    {#                        <button id="submit-file-upload" class="btn btn-primary" type="button">Validate</button>#}
+    {#                    </div>#}
+                        <div class="input-group-append pl-2">
+                            <button id="get-headers-button" class="btn btn-primary">Load</button>
+                        </div>
                     </div>
-{#                    <div class="input-group-append pl-2">#}
-{#                        <button id="submit-file-upload" class="btn btn-primary" type="button">Validate</button>#}
-{#                    </div>#}
-                    <div class="input-group-append pl-2">
-                        <button id="get-headers-button" class="btn btn-primary" type="submit">Load</button>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
-
-</form>

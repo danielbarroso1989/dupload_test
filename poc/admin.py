@@ -11,7 +11,8 @@ class ProcessAdmin(admin.ModelAdmin):
 
 @admin.register(File)
 class FileAdmin(admin.ModelAdmin):
-    list_display = ('filename', 'path', 'num_column', 'id_process', 'deleted',)
+    list_display = ('filename_original', 'path', 'num_column', 'id_process', 'deleted',)
+    list_display_links = ('filename_original', 'num_column')
 
 
 @admin.register(Status)

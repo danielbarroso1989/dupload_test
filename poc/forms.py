@@ -24,7 +24,8 @@ class ProcessForm(forms.ModelForm):
 
 class FileForm(forms.ModelForm):
     path = forms.FileField(widget=forms.FileInput(attrs={'class': 'custom-file-input', 'id': 'file_csv',
-                                                         'aria-describedby': 'path', 'name': 'path'})
+                                                         'aria-describedby': 'path', 'name': 'path',
+                                                         'onchange': 'checkFile();'})
                            )
 
     class Meta:
