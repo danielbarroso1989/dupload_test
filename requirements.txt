@@ -1,4 +1,4 @@
 numpy==1.17.0
-Django==2.2.4
+Django==2.2.13
 pandas==0.25.0
 requests==2.22.0
